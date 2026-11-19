@@ -14,6 +14,7 @@ import av
 
 from paired import CACHE, CAMERAS, DEFAULT_SEED, FPS, PairedDataset
 from trajectories import DATASET, default_liquid
+from inference import Inference
 
 WEB = Path(__file__).resolve().parent / "web"
 ASSETS = {
@@ -26,6 +27,7 @@ ASSETS = {
 class ReviewServer(ThreadingHTTPServer):
     def __init__(self, address, dataset):
         self.dataset = dataset
+        self.inference = Inference(dataset)
         self.exit_token = secrets.token_urlsafe(32)
         super().__init__(address, ReviewHandler)
 
@@ -54,6 +56,15 @@ class ReviewHandler(BaseHTTPRequestHandler):
             if path == "/":
                 body = body.replace(b"__EXIT_TOKEN__", self.server.exit_token.encode("ascii"))
             self.send_bytes(HTTPStatus.OK, body, content_type)
+            return
+        if path == "/api/inference":
+            self.send_json(HTTPStatus.OK, self.server.inference.snapshot())
+            return
+        result_match = re.fullmatch(r"/api/inference/([0-9]{1,2})", path)
+        if result_match:
+            with self.server.inference.lock:
+                result = self.server.inference.results.get(int(result_match[1]))
+            self.send_json(HTTPStatus.OK, result)
             return
         if path == "/api/samples":
             self.send_json(HTTPStatus.OK, {
@@ -143,13 +154,30 @@ class ReviewHandler(BaseHTTPRequestHandler):
                 pass
 
     def do_POST(self):
-        if urlsplit(self.path).path != "/api/shutdown":
+        path = urlsplit(self.path).path
+        if path in ("/api/inference/start", "/api/inference/stop"):
+            try:
+                if path.endswith("/start"):
+                    size = int(self.headers.get("Content-Length", "0"))
+                    if not 0 < size <= 4096:
+                        raise ValueError("请求大小无效")
+                    self.server.inference.start(json.loads(self.rfile.read(size))["ids"])
+                else:
+                    self.server.inference.cancel()
+            except (ValueError, KeyError, TypeError) as error:
+                self.send_json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
+            else:
+                self.send_json(HTTPStatus.OK, self.server.inference.snapshot())
+            return
+        if path != "/api/shutdown":
             self.send_json(HTTPStatus.NOT_FOUND, {"error": "找不到请求的资源。"})
             return
         provided_token = self.headers.get("X-Exit-Token", "").encode("utf-8")
         if not secrets.compare_digest(provided_token, self.server.exit_token.encode("ascii")):
             self.send_json(HTTPStatus.FORBIDDEN, {"error": "退出请求失效，请刷新页面后重试。"})
             return
+        self.server.inference.cancel()
+        self.server.inference.closed.set()
         self.send_json(HTTPStatus.OK, {"status": "stopping"})
         self.wfile.flush()
         Thread(target=self.server.shutdown, daemon=True).start()

@@ -47,3 +47,13 @@ ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:8092:127.0.0.1:8092 user@server
 ```bash
 /home/hdy/kai0/.venv/bin/python trajectories.py 0 > episode_000000_right_arm.json
 ```
+
+## 模型推理
+
+使用 `~/kai0` 中的 OpenPI 客户端协议，默认连接 `10.132.90.113:8002` 的 Solid 和 `10.132.90.113:8001` 的 Liquid 服务。启动环境需能导入 `openpi_client`，requirements 指向本机已有源码。
+
+开始推理后按 Samples 顺序，逐条发送原始观测状态、三路 RGB 图像和逐帧 task_index 对应文本。每次采用模型返回的完整动作段，再从下一段起点的参考观测继续推理，属于基于数据集观测的动作拟合评测。Solid 取右臂，Liquid 取左臂，动作段在任务边界截断。返回值严格检查为有限的 [horizon, 14] actions。
+
+点击停止后等待当前已发出的请求完成，再停止后续请求，停止期间批次按钮保持禁用。退出可立即关闭本 UI，模型服务器已经收到的计算可能继续完成。推理结果保存在服务内存中，刷新可继续查看，重启服务后重新推理。每条完成后红线默认用 5 秒展示，可跳过或重播，系统减少动态效果设置会直接展示完整曲线。
+
+七项 RMSE 使用全部 3150 个对应帧计算。总体 RMSE 为 J01–J06 的 RMSE 均方根，单位 rad。J07 单独以 m 展示。

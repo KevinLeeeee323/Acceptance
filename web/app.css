@@ -65,7 +65,15 @@ button:disabled { cursor: default; opacity: .45; }
 }
 .eyebrow { color: var(--accent); font-weight: 750; font-size: .75rem; letter-spacing: .12em; }
 h1 { margin-top: .25rem; font-size: clamp(1.3rem, 3vw, 2rem); letter-spacing: -.028em; }
-.batch { margin-left: auto; }
+.batch {
+  margin-left: auto;
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  column-gap: 1.1rem;
+}
+.batch #model-status { margin: 0; white-space: nowrap; }
+.batch #batch-status { grid-column: 2; }
 .batch-controls { display: flex; flex-wrap: wrap; align-items: end; gap: .5rem; }
 .batch-controls label {
   display: grid;
@@ -147,6 +155,7 @@ h1 { margin-top: .25rem; font-size: clamp(1.3rem, 3vw, 2rem); letter-spacing: -.
 .videos { margin-bottom: 1rem; padding: .95rem; }
 #cameras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin-top: .65rem; }
 #cameras figure { min-width: 0; margin: 0; }
+#cameras figcaption { text-align: center; }
 #cameras figcaption, #cameras p { font-size: .78rem; color: var(--muted); margin-block: .25rem; }
 #cameras video { display: block; width: 100%; aspect-ratio: 4 / 3; border-radius: .5rem; background: var(--bg); }
 .legend { display: flex; flex-wrap: wrap; gap: .5rem 1.2rem; font-size: .78rem; color: var(--muted); }
@@ -220,3 +229,42 @@ dialog form { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 
 #playback-controls { margin: 0 0 1rem; padding: .6rem .95rem; }
 .playback-readouts { display: grid; gap: .2rem; font-variant-numeric: tabular-nums; }
 .playback-readouts output { white-space: nowrap; }
+.lamp { display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; background: #88918e; flex: none; margin-right: .45rem; }
+.lamp.completed { background: #21804b; }
+.lamp.waiting, .lamp.running { background: #c48a10; }
+.sample .lamp { margin-left: auto; margin-right: 0; }
+#model-status { font-size: .8rem; margin-bottom: .4rem; }
+.model-line { fill: none; stroke: #d34242; stroke-width: 1.6; }
+.legend .model-key::before { border-color: #d34242; border-top-style: solid; }
+.footer-actions { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+.footer-actions button, #animation { min-height: 2rem; border: 1px solid var(--border); border-radius: .5rem; background: var(--surface); color: var(--ink); padding: .3rem .7rem; }
+.metrics { padding: 1.1rem 1.25rem; margin-top: 1rem; background: var(--bg); box-shadow: none; }
+.metrics h3 { font-size: 1rem; }
+#rmse { margin-top: 1rem; font-variant-numeric: tabular-nums; }
+.video-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: .4rem 1rem; }
+.metrics-layout { display: grid; grid-template-columns: minmax(11rem, 1fr) minmax(0, 3fr); gap: 1.5rem; align-items: center; }
+.metric-overall { align-self: stretch; display: flex; flex-direction: column; justify-content: center; gap: .4rem; border-right: 1px solid var(--border); padding-right: 1.25rem; }
+.metric-overall-label { font-size: .87rem; font-weight: 600; }
+.metric-overall-value { display: flex; align-items: baseline; flex-wrap: wrap; gap: .4rem; }
+.metric-overall-value strong { font-size: clamp(1.8rem, 2.6vw, 2.6rem); line-height: 1.15; letter-spacing: -.035em; color: var(--accent); }
+#rmse-status { color: var(--muted); font-size: .72rem; }
+.joint-metrics { display: grid; gap: 1.15rem; }
+.metric-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem; margin: 0; }
+.metric dt { display: flex; flex-wrap: wrap; gap: .25rem .45rem; align-items: baseline; color: var(--muted); font-size: .72rem; }
+.metric-id { font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; color: var(--accent); font-size: .85rem; font-weight: 600; }
+.metric dd { margin: .3rem 0 0; display: flex; flex-wrap: wrap; gap: .2rem .35rem; align-items: baseline; }
+.metric dd strong { font-size: 1.1rem; font-weight: 650; letter-spacing: -.025em; }
+.metric-unit { color: var(--muted); font-size: .7rem; font-weight: 400; }
+@media (max-width: 920px) {
+  .metrics-layout { grid-template-columns: minmax(0, 1fr); gap: 1.1rem; }
+  .metric-overall { border-right: 0; border-bottom: 1px solid var(--border); padding: 0 0 1rem; }
+}
+@media (max-width: 600px) {
+  .batch { width: 100%; column-gap: .75rem; }
+  .batch-controls { gap: .4rem; }
+  .batch-controls label { grid-template-columns: auto auto; align-items: center; }
+  .batch-controls button { font-size: .76rem; }
+  .batch #model-status { white-space: normal; max-width: 9rem; font-size: .75rem; }
+  .metric-row { gap: .7rem; }
+  .metric dd strong { font-size: .95rem; }
+}

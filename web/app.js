@@ -33,6 +33,12 @@ let charts = [];
 let renderedFrame = 0;
 let videoSession;
 let chartHovered = false;
+let inferenceState = {running: false, ready: false, states: {}, ids: []};
+let modelResult;
+let animationStart = 0;
+let animationFrame = 0;
+let reveal = 1;
+let resultLoading = false;
 
 async function fetchJSON(url, options) {
   const response = await fetch(url, options);
@@ -92,7 +98,7 @@ function showBatch() {
 }
 
 async function updateBatch(replaceBatch) {
-  if (!batchForm.reportValidity() || generate.disabled) return;
+  if (!batchForm.reportValidity() || generate.disabled || inferenceState.running) return;
   const count = sampleSize.valueAsNumber;
   generate.disabled = resample.disabled = sampleSize.disabled = true;
   try {
@@ -106,12 +112,13 @@ async function updateBatch(replaceBatch) {
       batch = {...batch, generated: true};
     }
     showBatch();
+    refreshInferenceUI();
     loadSample(!replaceBatch && batch.ids.includes(selected) ? selected : batch.ids[0]);
     saveSelection(true);
   } catch (error) {
     byId("batch-status").textContent = error instanceof TypeError ? "连接验收服务失败，请重试。" : error.message;
   } finally {
-    generate.disabled = resample.disabled = sampleSize.disabled = false;
+    generate.disabled = resample.disabled = sampleSize.disabled = inferenceState.running;
   }
 }
 
@@ -133,6 +140,10 @@ async function loadSample(id) {
   const request = new AbortController();
   pending = request;
   selected = id;
+  modelResult = undefined;
+  cancelAnimationFrame(animationFrame);
+  byId("animation").disabled = true;
+  renderMetrics();
   chartHovered = false;
   trajectory = undefined;
   const index = batch.ids.indexOf(id);
@@ -178,6 +189,7 @@ async function loadSample(id) {
     notice.hidden = true;
     setFrame(0);
     showVideos(id);
+    fetchResult();
   } catch (error) {
     if (!request.signal.aborted) showError(error, () => loadSample(id));
   }
@@ -363,13 +375,14 @@ function buildCharts() {
       role: "img",
       "aria-label": `${title.textContent}参考轨迹，悬停查看数值，点击定位视频`,
     });
-    svg.append(grid, line, cursor, marker);
+    const modelLine = svgElement("path", {class: "model-line"});
+    svg.append(grid, line, modelLine, cursor, marker);
     figure.append(caption, svg);
 
     const series = trajectory.reference[dimension];
     let min = Infinity;
     let max = -Infinity;
-    for (const point of series) {
+    for (const point of [...series, ...(modelResult?.prediction[dimension] ?? [])]) {
       if (point === null) continue;
       min = Math.min(min, point);
       max = Math.max(max, point);
@@ -390,7 +403,7 @@ function buildCharts() {
       locatePointer(event, svg);
       seekVideos(chartFrame);
     });
-    return {figure, svg, grid, line, cursor, marker, value, series, min, max};
+    return {figure, svg, grid, line, modelLine, cursor, marker, value, series, min, max};
   });
   byId("charts").replaceChildren(...charts.map(chart => chart.figure));
 }
@@ -450,6 +463,12 @@ function drawChart(chart, index, showFrameTicks) {
     layoutChart(chart, showFrameTicks);
   }
   if (min === Infinity) return;
+  if (modelResult) {
+    const points = modelResult.prediction[charts.indexOf(chart)];
+    const count = Math.floor(points.length * reveal);
+    chart.modelLine.setAttribute("d", points.slice(0, count).map((point, offset) =>
+      `${offset === 0 || offset === trajectory.splitFrame ? "M" : "L"}${chart.x(trajectory.frames[offset]).toFixed(2)} ${chart.y(point).toFixed(2)}`).join(" "));
+  }
   const position = chart.x(trajectory.frames[index]);
   setAttributes(cursor, {x1: position, x2: position});
   marker.style.display = current === null ? "none" : "";
@@ -563,3 +582,100 @@ confirmExit.addEventListener("click", async () => {
 });
 
 initialize();
+
+function refreshInferenceUI() {
+  const matching = batch && JSON.stringify(batch.ids) === JSON.stringify(inferenceState.ids);
+  byId("model-status").replaceChildren();
+  const lamp = document.createElement("span");
+  lamp.className = "lamp " + (inferenceState.ready ? "completed" : "waiting");
+  byId("model-status").append(lamp, inferenceState.ready ? "模型推理服务已就绪" : "等待推理模型服务");
+  generate.disabled = resample.disabled = sampleSize.disabled = inferenceState.running;
+  byId("start-inference").disabled = !batch?.generated || inferenceState.running || !inferenceState.ready;
+  byId("stop-inference").disabled = !inferenceState.running || inferenceState.stopping;
+  byId("inference-status").textContent = inferenceState.error ||
+    (inferenceState.stopping ? "正在停止推理…" : inferenceState.running ? "正在按样本顺序推理…" : "");
+  for (const button of samplesNav.querySelectorAll("button")) {
+    let indicator = button.querySelector(".lamp");
+    if (!indicator) {
+      indicator = document.createElement("span");
+      button.append(indicator);
+    }
+    const status = matching ? inferenceState.states[button.dataset.id] : "pending";
+    indicator.className = "lamp " + (status || "pending");
+    indicator.setAttribute("role", "img");
+    indicator.setAttribute("aria-label", {completed: "推理完成", running: "推理中"}[status] || "待推理");
+  }
+}
+
+function renderMetrics(result) {
+  byId("rmse-overall").textContent = result ? result.overall.toFixed(6) : "—";
+  byId("rmse-status").textContent = result ? "J01–J06 RMSE 的均方根" : "等待本条推理完成";
+  for (let i = 0; i < 7; i++) {
+    byId(`rmse-j${i + 1}`).textContent = result ? result.rmse[i].toFixed(6) : "—";
+  }
+}
+
+async function fetchResult() {
+  if (!trajectory || modelResult || resultLoading
+      || JSON.stringify(batch?.ids) !== JSON.stringify(inferenceState.ids)
+      || inferenceState.states[selected] !== "completed") return;
+  const episode = selected;
+  resultLoading = true;
+  try {
+    const result = await fetchJSON(`api/inference/${episode}`);
+    if (selected !== episode || !trajectory || !result) return;
+    modelResult = result;
+    renderMetrics(result);
+    buildCharts();
+    byId("animation").disabled = false;
+    replayAnimation();
+  } finally {
+    resultLoading = false;
+  }
+}
+
+function replayAnimation() {
+  cancelAnimationFrame(animationFrame);
+  animationStart = performance.now();
+  reveal = matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : 0;
+  function tick(now) {
+    reveal = Math.min(1, (now - animationStart) / 5000);
+    drawCharts();
+    byId("animation").textContent = reveal < 1 ? "跳过动画" : "重播";
+    if (reveal < 1) animationFrame = requestAnimationFrame(tick);
+  }
+  if (reveal === 1) drawCharts();
+  else animationFrame = requestAnimationFrame(tick);
+}
+byId("animation").addEventListener("click", () => {
+  if (reveal < 1) {
+    cancelAnimationFrame(animationFrame);
+    reveal = 1;
+    drawCharts();
+    byId("animation").textContent = "重播";
+  } else replayAnimation();
+});
+async function inferenceCommand(command) {
+  try {
+    inferenceState = await fetchJSON(`api/inference/${command}`, {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ids: batch?.ids}),
+    });
+    refreshInferenceUI();
+  } catch (error) {
+    byId("inference-status").textContent = error.message;
+  }
+}
+byId("start-inference").addEventListener("click", () => inferenceCommand("start"));
+byId("stop-inference").addEventListener("click", () => inferenceCommand("stop"));
+async function pollInference() {
+  try {
+    inferenceState = await fetchJSON("api/inference");
+    if (dataset) refreshInferenceUI();
+    await fetchResult();
+  } catch (error) {
+    byId("inference-status").textContent = "推理状态连接中断，正在重试";
+  }
+  if (!byId("workspace").hidden) setTimeout(pollInference, 1000);
+}
+pollInference();

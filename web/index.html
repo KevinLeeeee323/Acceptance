@@ -17,6 +17,7 @@
         <h1>具身化学项目轨迹验收</h1>
       </div>
       <div class="batch">
+        <p id="model-status" role="status"><span class="lamp waiting"></span>等待推理模型服务</p>
         <form id="batch-form" class="batch-controls">
           <label>抽样条数
             <input id="sample-size" type="number" min="1" max="50" value="20" required>
@@ -53,9 +54,11 @@
         </div>
 
         <section id="video-panel" class="videos surface" aria-labelledby="video-title" hidden>
-          <h3 id="video-title">三路采集视频</h3>
+          <div class="video-heading">
+            <h3 id="video-title">三路采集视频</h3>
+            <p id="video-status" role="status">正在加载三路画面…</p>
+          </div>
           <div id="cameras"></div>
-          <p id="video-status" role="status">正在加载三路画面…</p>
         </section>
 
         <div id="playback-controls" class="surface frame-control video-controls" hidden>
@@ -73,7 +76,8 @@
             <h3 id="chart-title">7 维轨迹对比图</h3>
             <div class="legend">
               <span class="reference-key">专家参考 action</span>
-              <span class="model-key">模型推理待接入</span>
+              <span class="model-key">模型推理 action</span>
+              <button id="animation" type="button" disabled>重播</button>
             </div>
           </header>
           <p class="chart-description">
@@ -90,12 +94,61 @@
         </section>
 
 
+        <section class="surface metrics">
+          <h3>全部轨迹点 RMSE</h3>
+          <div id="rmse" class="metrics-layout">
+            <div class="metric-overall">
+              <p class="metric-overall-label">六关节总体 RMSE</p>
+              <p class="metric-overall-value"><strong id="rmse-overall">—</strong><span class="metric-unit">rad</span></p>
+              <p id="rmse-status" role="status">等待本条推理完成</p>
+            </div>
+            <div class="joint-metrics">
+              <dl class="metric-row">
+                <div class="metric">
+                  <dt><span class="metric-id">J01</span><span>腰关节</span></dt>
+                  <dd><strong id="rmse-j1">—</strong><span class="metric-unit">rad</span></dd>
+                </div>
+                <div class="metric">
+                  <dt><span class="metric-id">J02</span><span>肩关节</span></dt>
+                  <dd><strong id="rmse-j2">—</strong><span class="metric-unit">rad</span></dd>
+                </div>
+                <div class="metric">
+                  <dt><span class="metric-id">J03</span><span>肘关节</span></dt>
+                  <dd><strong id="rmse-j3">—</strong><span class="metric-unit">rad</span></dd>
+                </div>
+              </dl>
+              <dl class="metric-row">
+                <div class="metric">
+                  <dt><span class="metric-id">J04</span><span>前臂旋转</span></dt>
+                  <dd><strong id="rmse-j4">—</strong><span class="metric-unit">rad</span></dd>
+                </div>
+                <div class="metric">
+                  <dt><span class="metric-id">J05</span><span>腕关节俯仰</span></dt>
+                  <dd><strong id="rmse-j5">—</strong><span class="metric-unit">rad</span></dd>
+                </div>
+                <div class="metric">
+                  <dt><span class="metric-id">J06</span><span>腕关节旋转</span></dt>
+                  <dd><strong id="rmse-j6">—</strong><span class="metric-unit">rad</span></dd>
+                </div>
+                <div class="metric">
+                  <dt><span class="metric-id">J07</span><span>爪夹</span></dt>
+                  <dd><strong id="rmse-j7">—</strong><span class="metric-unit">m</span></dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+        </section>
       </main>
     </div>
 
     <footer>
       <p>固体 + 液体 <span aria-hidden="true">·</span> 固液配对验收</p>
-      <button class="exit" id="exit" type="button">退出</button>
+      <div class="footer-actions">
+        <span id="inference-status" role="status"></span>
+        <button id="start-inference" type="button" disabled>开始推理</button>
+        <button id="stop-inference" type="button" disabled>停止推理</button>
+        <button class="exit" id="exit" type="button">退出</button>
+      </div>
     </footer>
   </div>
 
