@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="exit-token" content="__EXIT_TOKEN__">
+  <title>具身化学项目轨迹验收</title>
+  <link rel="stylesheet" href="app.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="workspace" id="workspace">
+    <header class="masthead surface">
+      <span class="project-mark" aria-hidden="true">↗</span>
+      <div>
+        <p class="eyebrow">ROBOTICS / ACCEPTANCE</p>
+        <h1>具身化学项目轨迹验收</h1>
+      </div>
+      <div class="batch">
+        <form id="batch-form" class="batch-controls">
+          <label>抽样条数
+            <input id="sample-size" type="number" min="1" max="50" value="20" required>
+          </label>
+          <button id="generate" class="primary" type="submit" disabled>生成验收批次</button>
+          <button id="resample" type="button" disabled>换一批数据</button>
+        </form>
+        <p id="batch-status" role="status"></p>
+      </div>
+    </header>
+
+    <div class="review">
+      <aside class="samples surface" aria-labelledby="samples-title">
+        <div class="samples-heading">
+          <p class="eyebrow">SAMPLES</p>
+          <h2 id="samples-title">数据样本</h2>
+          <p id="sample-count"></p>
+        </div>
+        <nav id="samples" aria-label="数据样本"></nav>
+      </aside>
+
+      <main>
+        <div class="sample-heading">
+          <div>
+            <p class="eyebrow" id="sample-number">SAMPLE</p>
+            <h2 id="sample-title">样本轨迹</h2>
+            <p id="sample-meta"></p>
+          </div>
+          <div class="pagination" aria-label="切换样本">
+            <button id="previous" type="button" aria-label="上一条" disabled>←</button>
+            <span id="position">—</span>
+            <button id="next" type="button" aria-label="下一条" disabled>→</button>
+          </div>
+        </div>
+
+        <section id="video-panel" class="videos surface" aria-labelledby="video-title" hidden>
+          <h3 id="video-title">三路采集视频</h3>
+          <div id="cameras"></div>
+          <p id="video-status" role="status">正在加载三路画面…</p>
+        </section>
+
+        <div id="playback-controls" class="surface frame-control video-controls" hidden>
+          <button id="video-play" type="button" disabled>播放</button>
+          <label for="video-progress">播放进度</label>
+          <input id="video-progress" type="range" min="0" max="3149" step="1" value="0" disabled>
+          <div class="playback-readouts">
+            <output id="video-time" for="video-progress">0.00 / 105.00 s</output>
+            <output id="video-frame" for="video-progress">帧 0 / 3150</output>
+          </div>
+        </div>
+
+        <section class="trajectory surface" aria-labelledby="chart-title">
+          <header class="chart-heading">
+            <h3 id="chart-title">7 维轨迹对比图</h3>
+            <div class="legend">
+              <span class="reference-key">专家参考 action</span>
+              <span class="model-key">模型推理待接入</span>
+            </div>
+          </header>
+          <p class="chart-description">
+            固体采集任务(右臂) → 液体采集任务(左臂) · 虚线为任务切换点 ·
+            16 个原子动作（彩色区间，详见下方图例）
+          </p>
+          <div id="notice" class="notice" role="status">正在加载样本…</div>
+          <div id="plot" hidden>
+            <p id="frame-value" class="chart-description"></p>
+            <div id="charts"></div>
+            <div class="axis-title">帧索引</div>
+            <p class="action-note">原子动作区间待标注。</p>
+          </div>
+        </section>
+
+
+      </main>
+    </div>
+
+    <footer>
+      <p>固体 + 液体 <span aria-hidden="true">·</span> 固液配对验收</p>
+      <button class="exit" id="exit" type="button">退出</button>
+    </footer>
+  </div>
+
+  <dialog id="exit-dialog" aria-labelledby="exit-title" aria-describedby="exit-description">
+    <h2 id="exit-title">退出轨迹验收？</h2>
+    <p id="exit-description">确认后将关闭验收服务，所有已打开的验收页面都会断开连接。</p>
+    <p id="exit-error" role="alert" hidden></p>
+    <form method="dialog">
+      <button id="cancel-exit" type="submit" autofocus>取消</button>
+      <button id="confirm-exit" type="button">确认退出</button>
+    </form>
+  </dialog>
+
+  <main class="closed surface" id="closed" hidden>
+    <h1 tabindex="-1" id="closed-title">验收服务已关闭</h1>
+    <p>可以关闭此标签页。</p>
+  </main>
+</body>
+</html>
