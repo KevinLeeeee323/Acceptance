@@ -40,7 +40,10 @@ class ReviewHandler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def send_json(self, status, payload):
         body = json.dumps(payload, ensure_ascii=False, allow_nan=False).encode("utf-8")

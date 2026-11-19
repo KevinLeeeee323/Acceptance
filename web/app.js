@@ -95,6 +95,7 @@ function showBatch() {
   byId("batch-status").textContent = batch
     ? `${batch.ids.length} 条固液配对 · Seed ${batch.seed} · ${batch.generated ? "已生成" : "待生成"}`
     : `${dataset.samples.length} 条配对可抽样 · 初始 Seed ${dataset.defaultSeed}`;
+  renderReviews();
 }
 
 async function updateBatch(replaceBatch) {
@@ -140,6 +141,7 @@ async function loadSample(id) {
   const request = new AbortController();
   pending = request;
   selected = id;
+  renderReviews();
   modelResult = undefined;
   cancelAnimationFrame(animationFrame);
   byId("animation").disabled = true;
@@ -153,7 +155,11 @@ async function loadSample(id) {
     if (Number(button.dataset.id) === id) button.setAttribute("aria-current", "true");
     else button.removeAttribute("aria-current");
   }
-  samplesNav.querySelector('[aria-current="true"]').scrollIntoView({block: "nearest", inline: "nearest"});
+  const activeSample = samplesNav.querySelector('[aria-current="true"]');
+  const itemBounds = activeSample.getBoundingClientRect();
+  const listBounds = samplesNav.getBoundingClientRect();
+  if (itemBounds.top < listBounds.top) samplesNav.scrollTop -= listBounds.top - itemBounds.top;
+  else if (itemBounds.bottom > listBounds.bottom) samplesNav.scrollTop += itemBounds.bottom - listBounds.bottom;
   byId("sample-number").textContent = `SAMPLE ${String(index + 1).padStart(2, "0")}`;
   byId("sample-title").textContent = `第 ${id} 条`;
   byId("sample-meta").textContent = `Solid + Liquid · ${sample.frames} 帧 · ${dataset.fps} FPS`;
@@ -581,7 +587,6 @@ confirmExit.addEventListener("click", async () => {
   }
 });
 
-initialize();
 
 function refreshInferenceUI() {
   const matching = batch && JSON.stringify(batch.ids) === JSON.stringify(inferenceState.ids);
@@ -595,15 +600,20 @@ function refreshInferenceUI() {
   byId("inference-status").textContent = inferenceState.error ||
     (inferenceState.stopping ? "正在停止推理…" : inferenceState.running ? "正在按样本顺序推理…" : "");
   for (const button of samplesNav.querySelectorAll("button")) {
-    let indicator = button.querySelector(".lamp");
-    if (!indicator) {
-      indicator = document.createElement("span");
-      button.append(indicator);
+    let statusGroup = button.querySelector(".sample-status");
+    if (!statusGroup) {
+      statusGroup = document.createElement("span");
+      statusGroup.className = "sample-status";
+      const indicator = document.createElement("span");
+      indicator.setAttribute("aria-hidden", "true");
+      const label = document.createElement("span");
+      statusGroup.append(indicator, label);
+      button.append(statusGroup);
     }
     const status = matching ? inferenceState.states[button.dataset.id] : "pending";
-    indicator.className = "lamp " + (status || "pending");
-    indicator.setAttribute("role", "img");
-    indicator.setAttribute("aria-label", {completed: "推理完成", running: "推理中"}[status] || "待推理");
+    statusGroup.firstElementChild.className = "lamp " + (status || "pending");
+    statusGroup.lastElementChild.textContent =
+      {completed: "已完成推理", running: "推理中"}[status] || "等待推理中";
   }
 }
 
@@ -679,3 +689,114 @@ async function pollInference() {
   if (!byId("workspace").hidden) setTimeout(pollInference, 1000);
 }
 pollInference();
+
+let reviewStore = {};
+try {
+  reviewStore = JSON.parse(localStorage.getItem("acceptance-reviews-v1") || "{}");
+  if (!reviewStore || typeof reviewStore !== "object" || Array.isArray(reviewStore)) reviewStore = {};
+} catch (error) {
+  byId("review-error").textContent = "读取本地评定记录失败，请检查浏览器存储设置。";
+}
+
+function reviewKey() {
+  return JSON.stringify([batch.seed, batch.ids]);
+}
+
+function currentReview() {
+  const key = reviewKey();
+  if (!reviewStore[key] || typeof reviewStore[key] !== "object") {
+    reviewStore[key] = {items: {}, notes: ""};
+  }
+  if (!reviewStore[key].items || typeof reviewStore[key].items !== "object") reviewStore[key].items = {};
+  return reviewStore[key];
+}
+
+function persistReviews() {
+  try {
+    localStorage.setItem("acceptance-reviews-v1", JSON.stringify(reviewStore));
+    byId("review-error").textContent = "";
+    return true;
+  } catch (error) {
+    byId("review-error").textContent = "本地保存失败，请检查浏览器存储空间和权限。";
+    return false;
+  }
+}
+
+function renderReviews() {
+  const enabled = !!batch?.generated;
+  const record = batch ? currentReview() : {items: {}};
+  const current = record.items[selected] || {};
+  byId("notes-open").disabled = !batch;
+  for (const id of ["mark-success", "mark-failure"]) byId(id).disabled = !enabled || !!current.confirmed;
+  byId("mark-success").setAttribute("aria-pressed", current.choice === "success");
+  byId("mark-failure").setAttribute("aria-pressed", current.choice === "failure");
+  byId("confirm-review").disabled = !enabled || !!current.confirmed || !current.choice;
+  byId("reopen-review").disabled = !enabled || !current.confirmed;
+  const index = batch?.ids.indexOf(selected) ?? -1;
+  byId("review-previous").disabled = index <= 0;
+  byId("review-next").disabled = index < 0 || index === batch.ids.length - 1;
+  let success = 0;
+  let confirmed = 0;
+  byId("outcome-grid").replaceChildren(...(batch?.ids ?? []).map((id, position) => {
+    const item = record.items[id] || {};
+    if (item.confirmed) {
+      confirmed++;
+      if (item.choice === "success") success++;
+    }
+    const button = document.createElement("button");
+    const result = item.confirmed ? item.choice : "";
+    button.type = "button";
+    button.className = "outcome-cell " + result;
+    if (selected === id) button.setAttribute("aria-current", "true");
+    const label = result === "success" ? "成功" : result === "failure" ? "失败" : "未确认";
+    button.setAttribute("aria-label", `样本 ${position + 1}，第 ${id} 条，${label}`);
+    const symbol = document.createElement("span");
+    symbol.className = "outcome-symbol";
+    symbol.textContent = result === "success" ? "✓" : result === "failure" ? "✕" : "";
+    symbol.setAttribute("aria-hidden", "true");
+    const number = document.createElement("span");
+    number.textContent = position + 1;
+    button.append(symbol, number);
+    button.addEventListener("click", () => changeSample(id));
+    return button;
+  }));
+  const count = batch?.ids.length ?? 0;
+  byId("success-rate").textContent = `${count ? (100 * success / count).toFixed(1) : "0.0"}%`;
+  byId("outcome-count").textContent = `成功 ${success} 条 · 已评定 ${confirmed} / ${count} 条`;
+  byId("outcome-complete").hidden = count === 0 || confirmed !== count;
+}
+
+for (const choice of ["success", "failure"]) {
+  byId("mark-" + choice).addEventListener("click", () => {
+    currentReview().items[selected] = {choice, confirmed: false};
+    renderReviews();
+  });
+}
+byId("confirm-review").addEventListener("click", () => {
+  const item = currentReview().items[selected];
+  if (!item?.choice || item.confirmed) return;
+  item.confirmed = true;
+  if (!persistReviews()) item.confirmed = false;
+  renderReviews();
+});
+byId("reopen-review").addEventListener("click", () => {
+  const item = currentReview().items[selected];
+  item.confirmed = false;
+  if (!persistReviews()) item.confirmed = true;
+  renderReviews();
+});
+byId("review-previous").addEventListener("click", () => changeSample(batch.ids[batch.ids.indexOf(selected) - 1]));
+byId("review-next").addEventListener("click", () => changeSample(batch.ids[batch.ids.indexOf(selected) + 1]));
+byId("notes-open").addEventListener("click", () => {
+  byId("notes-text").value = currentReview().notes || "";
+  byId("notes-status").textContent = "自动保存到此浏览器";
+  byId("notes-dialog").showModal();
+  byId("notes-text").focus();
+});
+byId("notes-close").addEventListener("click", () => byId("notes-dialog").close());
+byId("notes-text").addEventListener("input", event => {
+  currentReview().notes = event.target.value;
+  byId("notes-status").textContent = persistReviews() ? "已保存" : "保存失败";
+});
+
+initialize();

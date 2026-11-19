@@ -30,6 +30,7 @@
     </header>
 
     <div class="review">
+      <div class="sidebar">
       <aside class="samples surface" aria-labelledby="samples-title">
         <div class="samples-heading">
           <p class="eyebrow">SAMPLES</p>
@@ -38,6 +39,16 @@
         </div>
         <nav id="samples" aria-label="数据样本"></nav>
       </aside>
+      <section class="outcomes surface" aria-labelledby="outcome-title">
+        <p class="eyebrow">REVIEW OUTCOME</p>
+        <h2 id="outcome-title">成功率统计</h2>
+        <div id="outcome-grid" aria-label="抽样条目评定结果"></div>
+        <p id="success-rate" class="success-rate">0.0%</p>
+        <p id="outcome-count" role="status">等待生成验收批次</p>
+        <p id="outcome-complete" hidden>已完成对所有抽样数据的评定</p>
+        <button id="notes-open" type="button" disabled>备注</button>
+      </section>
+      </div>
 
       <main>
         <div class="sample-heading">
@@ -147,10 +158,26 @@
         <span id="inference-status" role="status"></span>
         <button id="start-inference" type="button" disabled>开始推理</button>
         <button id="stop-inference" type="button" disabled>停止推理</button>
+        <button id="mark-success" type="button" disabled aria-pressed="false">本条标记为成功</button>
+        <button id="mark-failure" type="button" disabled aria-pressed="false">本条标记为失败</button>
+        <button id="confirm-review" type="button" disabled>确定</button>
+        <button id="reopen-review" type="button" disabled>重新评定这一条</button>
+        <button id="review-previous" type="button" disabled>上一条</button>
+        <button id="review-next" type="button" disabled>下一条</button>
         <button class="exit" id="exit" type="button">退出</button>
       </div>
     </footer>
   </div>
+
+  <dialog id="notes-dialog" aria-labelledby="notes-title">
+    <header class="notes-heading">
+      <h2 id="notes-title">备注</h2>
+      <span id="notes-status" role="status"></span>
+      <button id="notes-close" type="button" aria-label="关闭备注">×</button>
+    </header>
+    <textarea id="notes-text" aria-label="验收备注" spellcheck="false"></textarea>
+  </dialog>
+  <p id="review-error" role="alert"></p>
 
   <dialog id="exit-dialog" aria-labelledby="exit-title" aria-describedby="exit-description">
     <h2 id="exit-title">退出轨迹验收？</h2>
