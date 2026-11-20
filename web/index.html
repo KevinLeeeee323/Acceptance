@@ -52,9 +52,11 @@
 
       <main>
         <div class="sample-heading">
-          <div>
-            <p class="eyebrow" id="sample-number">SAMPLE</p>
-            <h2 id="sample-title">样本轨迹</h2>
+          <div class="sample-summary">
+            <div>
+              <p class="eyebrow" id="sample-number">SAMPLE</p>
+              <h2 id="sample-title">样本轨迹</h2>
+            </div>
             <p id="sample-meta"></p>
           </div>
           <div class="pagination" aria-label="切换样本">
@@ -93,14 +95,15 @@
           </header>
           <p class="chart-description">
             固体采集任务(右臂) → 液体采集任务(左臂) · 虚线为任务切换点 ·
-            16 个原子动作（彩色区间，详见下方图例）
+            16 个原子动作(彩色区间，详见下方图例)
           </p>
           <div id="notice" class="notice" role="status">正在加载样本…</div>
           <div id="plot" hidden>
             <p id="frame-value" class="chart-description"></p>
+            <svg id="action-timeline" role="img" aria-label="原子动作编号及起止区间"></svg>
             <div id="charts"></div>
             <div class="axis-title">帧索引</div>
-            <p class="action-note">原子动作区间待标注。</p>
+            <div id="action-legend" aria-label="原子动作图例"></div>
           </div>
         </section>
 

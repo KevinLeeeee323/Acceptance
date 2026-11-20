@@ -33,12 +33,12 @@
         "6": {
             "AtomActionName": "舀取固体",
             "StartFrameID": "1140",
-            "EndFrameID": "1180",
+            "EndFrameID": "1200",
             "Description": "右机械臂使用称量勺从固体容器中舀取固体粉末。"
         },
         "7": {
             "AtomActionName": "倾倒固体至称量舟",
-            "StartFrameID": "1180",
+            "StartFrameID": "1200",
             "EndFrameID": "1250",
             "Description": "右机械臂携称量勺至称量舟上方，倾倒称量勺，将固体样品倒入称量舟内，配合天平完成称重。"
         },

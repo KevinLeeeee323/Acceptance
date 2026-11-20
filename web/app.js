@@ -84,16 +84,14 @@ function showBatch() {
     const detail = document.createElement("span");
     const title = document.createElement("strong");
     title.textContent = `第 ${id} 条`;
-    const subtitle = document.createElement("small");
-    subtitle.textContent = "Solid + Liquid";
-    detail.append(title, subtitle);
+    detail.append(title);
     button.append(order, detail);
     button.addEventListener("click", () => changeSample(id));
     return button;
   }));
   byId("sample-count").textContent = batch ? `${batch.ids.length} 条` : "";
   byId("batch-status").textContent = batch
-    ? `${batch.ids.length} 条固液配对 · Seed ${batch.seed} · ${batch.generated ? "已生成" : "待生成"}`
+    ? `Seed ${batch.seed} · ${batch.generated ? "已生成" : "待生成"}`
     : `${dataset.samples.length} 条配对可抽样 · 初始 Seed ${dataset.defaultSeed}`;
   renderReviews();
 }
@@ -162,7 +160,7 @@ async function loadSample(id) {
   else if (itemBounds.bottom > listBounds.bottom) samplesNav.scrollTop += itemBounds.bottom - listBounds.bottom;
   byId("sample-number").textContent = `SAMPLE ${String(index + 1).padStart(2, "0")}`;
   byId("sample-title").textContent = `第 ${id} 条`;
-  byId("sample-meta").textContent = `Solid + Liquid · ${sample.frames} 帧 · ${dataset.fps} FPS`;
+  byId("sample-meta").textContent = `固体称量任务 + 液体称量任务 · ${sample.frames} 帧 · ${dataset.fps} FPS`;
   byId("chart-title").textContent = `第 ${id} 条 · 7 维轨迹对比图`;
   byId("position").textContent = `${index + 1} / ${batch.ids.length}`;
   previous.disabled = index === 0;
@@ -208,6 +206,7 @@ async function initialize() {
     sampleSize.max = dataset.samples.length;
     sampleSize.value = Math.min(Number(sampleSize.value), dataset.samples.length);
     generate.disabled = resample.disabled = false;
+    renderActionLegend();
     if (!restoreBatch()) {
       showBatch();
       notice.textContent = "选择抽样条数，然后点击「生成验收批次」。";
@@ -373,6 +372,7 @@ function buildCharts() {
     const value = document.createElement("span");
     value.className = "joint-value";
     caption.append(title, unit, value);
+    const bands = svgElement("g", {class: "action-bands"});
     const grid = svgElement("g", {class: "chart-grid"});
     const line = svgElement("path", {class: "chart-line"});
     const cursor = svgElement("line", {class: "chart-cursor"});
@@ -382,7 +382,7 @@ function buildCharts() {
       "aria-label": `${title.textContent}参考轨迹，悬停查看数值，点击定位视频`,
     });
     const modelLine = svgElement("path", {class: "model-line"});
-    svg.append(grid, line, modelLine, cursor, marker);
+    svg.append(bands, grid, line, modelLine, cursor, marker);
     figure.append(caption, svg);
 
     const series = trajectory.reference[dimension];
@@ -409,7 +409,7 @@ function buildCharts() {
       locatePointer(event, svg);
       seekVideos(chartFrame);
     });
-    return {figure, svg, grid, line, modelLine, cursor, marker, value, series, min, max};
+    return {figure, svg, bands, grid, line, modelLine, cursor, marker, value, series, min, max};
   });
   byId("charts").replaceChildren(...charts.map(chart => chart.figure));
 }
@@ -432,8 +432,10 @@ function locatePointer(event, svg) {
 
 function setFrame(index) {
   chartFrame = index;
-  const phase = index < trajectory.splitFrame ? "固体" : "液体";
-  const frameText = `${phase} · 帧 ${trajectory.frames[index]} · ${trajectory.timestamps[index].toFixed(2)} s`;
+  const phase = index < trajectory.splitFrame ? "固体称量" : "液体称量";
+  const action = dataset.atomicActions.find(item => item.start <= trajectory.frames[index] && trajectory.frames[index] < item.end);
+  const actionText = action ? ` · ${String(action.number).padStart(2, "0")} ${action.name}` : "";
+  const frameText = `${phase} · 帧 ${trajectory.frames[index]} · ${trajectory.timestamps[index].toFixed(2)} s${actionText}`;
   byId("frame-value").textContent = frameText;
   if (!renderedFrame) renderedFrame = requestAnimationFrame(drawCharts);
 }
@@ -452,6 +454,7 @@ function drawCharts() {
   renderedFrame = 0;
   if (!trajectory || plot.hidden) return;
   const index = chartFrame;
+  drawActionTimeline();
   for (const [dimension, chart] of charts.entries()) {
     drawChart(chart, index, dimension === charts.length - 1);
   }
@@ -482,7 +485,7 @@ function drawChart(chart, index, showFrameTicks) {
 }
 
 function layoutChart(chart, showFrameTicks) {
-  const {svg, grid, line, cursor, marker, width, height, min, max, series} = chart;
+  const {svg, bands, grid, line, cursor, marker, width, height, min, max, series} = chart;
   const left = 52;
   const right = width - 14;
   const top = 7;
@@ -496,6 +499,17 @@ function layoutChart(chart, showFrameTicks) {
   chart.y = y;
   svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
   grid.replaceChildren();
+  bands.replaceChildren(...dataset.atomicActions.map(action => {
+    const rect = svgElement("rect", {
+      x: x(action.start), y: top,
+      width: x(action.end) - x(action.start), height: bottom - top,
+      fill: action.color,
+    });
+    const title = svgElement("title", {});
+    title.textContent = `${action.number} ${action.name} · [${action.start}, ${action.end}) 帧`;
+    rect.append(title);
+    return rect;
+  }));
 
   function tickLabel(text, x, y, anchor) {
     const label = svgElement("text", {x, y, "text-anchor": anchor});
@@ -800,3 +814,55 @@ byId("notes-text").addEventListener("input", event => {
 });
 
 initialize();
+
+function renderActionLegend() {
+  byId("action-legend").replaceChildren(...["Solid", "Liquid"].map(phase => {
+    const group = document.createElement("section");
+    const heading = document.createElement("h4");
+    heading.textContent = phase === "Solid" ? "固体称量 · 右臂 · 动作 01–10" : "液体称量 · 左臂 · 动作 11–16";
+    const list = document.createElement("ol");
+    list.className = "action-list";
+    for (const action of dataset.atomicActions.filter(item => item.phase === phase)) {
+      const item = document.createElement("li");
+      const swatch = svgElement("svg", {viewBox: "0 0 16 16", "aria-hidden": "true", class: "action-swatch"});
+      swatch.append(svgElement("rect", {x: 0, y: 0, width: 16, height: 16, rx: 3, fill: action.color}));
+      const name = document.createElement("span");
+      name.textContent = `${String(action.number).padStart(2, "0")}  ${action.name}`;
+      item.title = action.description;
+      item.append(swatch, name);
+      list.append(item);
+    }
+    group.append(heading, list);
+    return group;
+  }));
+}
+
+function drawActionTimeline() {
+  const svg = byId("action-timeline");
+  const width = svg.getBoundingClientRect().width;
+  if (!width || svg.dataset.width === String(width)) return;
+  svg.dataset.width = width;
+  svg.setAttribute("viewBox", `0 0 ${width} 58`);
+  svg.replaceChildren();
+  const x = frame => 52 + (width - 66) * frame / (trajectory.frames.length - 1);
+  for (const action of dataset.atomicActions) {
+    const left = x(action.start);
+    const span = x(action.end) - left;
+    const rect = svgElement("rect", {x: left, y: 19, width: span, height: 32, fill: action.color});
+    const title = svgElement("title", {});
+    title.textContent = `${action.number} ${action.name} · [${action.start}, ${action.end}) 帧`;
+    rect.append(title);
+    svg.append(rect);
+    const labelFits = span >= (action.number < 10 ? 12 : 18);
+    if (labelFits || width >= 600) {
+      const label = svgElement("text", {
+        x: left + span / 2, y: labelFits ? 36 : 8,
+        class: labelFits ? "action-number" : "action-number action-number-outside",
+      });
+      label.textContent = action.number;
+      svg.append(label);
+    }
+  }
+  const split = x(trajectory.splitFrame);
+  svg.append(svgElement("line", {x1: split, x2: split, y1: 0, y2: 56, class: "chart-split"}));
+}

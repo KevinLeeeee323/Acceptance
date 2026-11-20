@@ -15,6 +15,7 @@ import av
 from paired import CACHE, CAMERAS, DEFAULT_SEED, FPS, PairedDataset
 from trajectories import DATASET, default_liquid
 from inference import Inference
+from atomic_actions import load_actions
 
 WEB = Path(__file__).resolve().parent / "web"
 ASSETS = {
@@ -27,6 +28,7 @@ ASSETS = {
 class ReviewServer(ThreadingHTTPServer):
     def __init__(self, address, dataset):
         self.dataset = dataset
+        self.actions = load_actions(dataset.cache)
         self.inference = Inference(dataset)
         self.exit_token = secrets.token_urlsafe(32)
         super().__init__(address, ReviewHandler)
@@ -77,6 +79,7 @@ class ReviewHandler(BaseHTTPRequestHandler):
                 "samples": dataset.samples,
                 "cameras": CAMERAS,
                 "defaultSeed": DEFAULT_SEED,
+                "atomicActions": self.server.actions,
             })
             return
         if path == "/api/batch":
