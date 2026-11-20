@@ -50,7 +50,20 @@ ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:8092:127.0.0.1:8092 user@server
 
 ## 模型推理
 
-使用 `~/kai0` 中的 OpenPI 客户端协议，默认连接 `10.132.90.113:8002` 的 Solid 和 `10.132.90.113:8001` 的 Liquid 服务。启动环境需能导入 `openpi_client`，requirements 指向本机已有源码。
+使用 `~/kai0` 中的 OpenPI 客户端协议，默认连接 `10.132.90.113:8002` 的 Solid 和 `10.132.90.113:8001` 的 Liquid 服务。启动环境需能导入 `openpi_client`，requirements 指向本机已有源码。需要现在对应服务器上启动推理模型:
+
+```bash
+cd kai0 && CUDA_VISIBLE_DEVICES=0 uv run scripts/serve_policy.py --port 8002 policy:checkpoint \
+--policy.config=solid_agilex \
+--policy.dir=/home/hdy/checkpoints/solid_awbc_99999
+```
+
+```bash
+# 终端2
+cd kai0 && CUDA_VISIBLE_DEVICES=1 uv run scripts/serve_policy.py --port 8001 policy:checkpoint \
+--policy.config=liquid_agilex \
+--policy.dir=/home/hdy/checkpoints/liquid_awbc_119999/liquid_awbc_119999/
+```
 
 开始推理后按 Samples 顺序，逐条发送原始观测状态、三路 RGB 图像和逐帧 task_index 对应文本。每次采用模型返回的完整动作段，再从下一段起点的参考观测继续推理，属于基于数据集观测的动作拟合评测。Solid 取右臂，Liquid 取左臂，动作段在任务边界截断。返回值严格检查为有限的 [horizon, 14] actions。
 

@@ -1,0 +1,102 @@
+{
+    "Solid": {
+        "1": {
+            "AtomActionName": "夹取漏斗",
+            "StartFrameID": "120",
+            "EndFrameID": "230",
+            "Description": "右机械臂从初始位置出发，夹取漏斗。"
+        },
+        "2": {
+            "AtomActionName": "放置漏斗至反应锥",
+            "StartFrameID": "230",
+            "EndFrameID": "450",
+            "Description": "右机械臂将夹取的漏斗放置到反应锥上。完成后右机械臂复原到初始位置。"
+        },
+        "3": {
+            "AtomActionName": "夹取称量舟",
+            "StartFrameID": "450",
+            "EndFrameID": "550",
+            "Description": "右机械臂从初始位置出发，抓取白色称量舟，准备进行固体称量。"
+        },
+        "4": {
+            "AtomActionName": "放置称量舟至天平",
+            "StartFrameID": "550",
+            "EndFrameID": "750",
+            "Description": "右机械臂把称量舟放到天平秤盘上，进行称量前准备。随后释放称量舟。完成后右机械臂复原到初始位置。"
+        },
+        "5": {
+            "AtomActionName": "夹取称量勺",
+            "StartFrameID": "1050",
+            "EndFrameID": "1140",
+            "Description": "右机械臂从初始位置出发，移动到固体容器附近，夹起称量勺，准备舀取固体容器中的蓝色粉末试剂。"
+        },
+        "6": {
+            "AtomActionName": "舀取固体",
+            "StartFrameID": "1140",
+            "EndFrameID": "1180",
+            "Description": "右机械臂使用称量勺从固体容器中舀取固体粉末。"
+        },
+        "7": {
+            "AtomActionName": "倾倒固体至称量舟",
+            "StartFrameID": "1180",
+            "EndFrameID": "1250",
+            "Description": "右机械臂携称量勺至称量舟上方，倾倒称量勺，将固体样品倒入称量舟内，配合天平完成称重。"
+        },
+        "8": {
+            "AtomActionName": "放置称量勺",
+            "StartFrameID": "1250",
+            "EndFrameID": "1400",
+            "Description": "固体称量完成，右机械臂将称量勺放回预设位置。完成后右机械臂复原到初始位置。"
+        },
+        "9": {
+            "AtomActionName": "夹取称量舟",
+            "StartFrameID": "1450",
+            "EndFrameID": "1550",
+            "Description": "右机械臂从初始位置出发，夹取天平上装好固体样品的称量舟。"
+        },
+        "10": {
+            "AtomActionName": "倾倒固体至反应锥",
+            "StartFrameID": "1550",
+            "EndFrameID": "1900",
+            "Description": "右机械臂移动到漏斗上方倾斜称量舟，固体顺着漏斗落入下方反应锥。完成后右机械臂复原到初始位置。右机械臂固体称量流程结束。"
+        }
+    },
+    "Liquid": {
+        "1": {
+            "AtomActionName": "夹取烧杯",
+            "StartFrameID": "0",
+            "EndFrameID": "125",
+            "Description": "左机械臂从初始位置出发，夹取装有红色溶液的烧杯。"
+        },
+        "2": {
+            "AtomActionName": "倾倒溶液至量筒",
+            "StartFrameID": "125",
+            "EndFrameID": "300",
+            "Description": "左机械臂携烧杯至量筒上方，倾斜烧杯，向量筒内倒入溶液，利用量筒定量量取溶液。"
+        },
+        "3": {
+            "AtomActionName": "放置烧杯",
+            "StartFrameID": "300",
+            "EndFrameID": "470",
+            "Description": "溶液倾倒完成，左机械臂将烧杯放下。完成后左机械臂复原到初始位置。"
+        },
+        "4": {
+            "AtomActionName": "夹取量筒",
+            "StartFrameID": "500",
+            "EndFrameID": "620",
+            "Description": "液体量取达标后，左机械臂从初始位置出发，夹取装有定量溶液的量筒。"
+        },
+        "5": {
+            "AtomActionName": "倾倒溶液至反应锥",
+            "StartFrameID": "620",
+            "EndFrameID": "780",
+            "Description": "左机械臂携量筒移动至反应锥上方，将定量溶液顺着漏斗倒入反应锥，和之前投入的固体混合。"
+        },
+        "6": {
+            "AtomActionName": "放置量筒",
+            "StartFrameID": "780",
+            "EndFrameID": "1000",
+            "Description": "左机械臂把量筒放回原位。完成后左机械臂复原到初始位置。左机械臂液体称量任务完成。"
+        }
+    }
+}
