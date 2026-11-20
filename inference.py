@@ -30,6 +30,7 @@ class Inference:
         self.results = {}
         self.error = ""
         self.ready = False
+        self.completed_callback = None
         Thread(target=self.monitor, daemon=True).start()
 
     def connection(self, port):
@@ -154,6 +155,8 @@ class Inference:
                 rmse = np.sqrt(np.mean((prediction - reference) ** 2, axis=1))
                 result = {"prediction": prediction.tolist(), "rmse": rmse.tolist(),
                           "overall": float(np.sqrt(np.mean(rmse[:6] ** 2)))}
+                if self.completed_callback:
+                    self.completed_callback(episode, result)
                 with self.lock:
                     self.results[episode] = result
                     self.states[episode] = "completed"

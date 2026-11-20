@@ -97,7 +97,7 @@ function showBatch() {
 }
 
 async function updateBatch(replaceBatch) {
-  if (!batchForm.reportValidity() || generate.disabled || inferenceState.running) return;
+  if (!batchForm.reportValidity() || generate.disabled || inferenceState.running || exporting) return;
   const count = sampleSize.valueAsNumber;
   generate.disabled = resample.disabled = sampleSize.disabled = true;
   try {
@@ -117,7 +117,7 @@ async function updateBatch(replaceBatch) {
   } catch (error) {
     byId("batch-status").textContent = error instanceof TypeError ? "连接验收服务失败，请重试。" : error.message;
   } finally {
-    generate.disabled = resample.disabled = sampleSize.disabled = inferenceState.running;
+    generate.disabled = resample.disabled = sampleSize.disabled = inferenceState.running || exporting;
   }
 }
 
@@ -203,6 +203,20 @@ async function initialize() {
   notice.textContent = "正在加载样本…";
   try {
     dataset = await fetchJSON("api/samples");
+    const savedReviews = await fetchJSON("api/reviews");
+    reviewStore = savedReviews.reviews;
+    if (!Object.keys(reviewStore).length) {
+      try {
+        const legacy = JSON.parse(localStorage.getItem("acceptance-reviews-v1") || "{}");
+        if (legacy && typeof legacy === "object" && !Array.isArray(legacy) && Object.keys(legacy).length) {
+          reviewStore = legacy;
+          await persistReviews();
+        }
+      } catch (error) {
+        byId("review-error").textContent = "旧版浏览器记录读取失败。";
+      }
+    }
+    byId("run-id").textContent = `运行 ID · ${savedReviews.runId}`;
     sampleSize.max = dataset.samples.length;
     sampleSize.value = Math.min(Number(sampleSize.value), dataset.samples.length);
     generate.disabled = resample.disabled = false;
@@ -570,8 +584,14 @@ const confirmExit = byId("confirm-exit");
 const cancelExit = byId("cancel-exit");
 const exitError = byId("exit-error");
 
-byId("exit").addEventListener("click", () => {
+byId("exit").addEventListener("click", async () => {
+  await saveQueue;
   exitError.hidden = true;
+  const needsExport = inferenceState.started && !inferenceState.exported;
+  confirmExit.disabled = needsExport;
+  byId("exit-description").textContent = needsExport
+    ? "没有进行过导出，或结果已修改。请先完成本批次全部推理，并成功导出最新结果后再退出。"
+    : "确认后将关闭验收服务，所有已打开的验收页面都会断开连接。";
   dialog.showModal();
 });
 dialog.addEventListener("cancel", event => {
@@ -604,11 +624,14 @@ confirmExit.addEventListener("click", async () => {
 
 function refreshInferenceUI() {
   const matching = batch && JSON.stringify(batch.ids) === JSON.stringify(inferenceState.ids);
+  byId("run-id").textContent = `运行 ID · ${inferenceState.runId || "—"}`;
+  byId("export-results").disabled = exporting || !inferenceState.started || !matching ||
+    inferenceState.running || !batch.ids.every(id => inferenceState.states[id] === "completed");
   byId("model-status").replaceChildren();
   const lamp = document.createElement("span");
   lamp.className = "lamp " + (inferenceState.ready ? "completed" : "waiting");
   byId("model-status").append(lamp, inferenceState.ready ? "模型推理服务已就绪" : "等待推理模型服务");
-  generate.disabled = resample.disabled = sampleSize.disabled = inferenceState.running;
+  generate.disabled = resample.disabled = sampleSize.disabled = inferenceState.running || exporting;
   byId("start-inference").disabled = !batch?.generated || inferenceState.running || !inferenceState.ready;
   byId("stop-inference").disabled = !inferenceState.running || inferenceState.stopping;
   byId("inference-status").textContent = inferenceState.error ||
@@ -681,9 +704,10 @@ byId("animation").addEventListener("click", () => {
 });
 async function inferenceCommand(command) {
   try {
+    if (command === "start" && !await persistReviews()) return;
     inferenceState = await fetchJSON(`api/inference/${command}`, {
       method: "POST", headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ids: batch?.ids}),
+      body: JSON.stringify({ids: batch?.ids, seed: batch?.seed}),
     });
     refreshInferenceUI();
   } catch (error) {
@@ -705,12 +729,9 @@ async function pollInference() {
 pollInference();
 
 let reviewStore = {};
-try {
-  reviewStore = JSON.parse(localStorage.getItem("acceptance-reviews-v1") || "{}");
-  if (!reviewStore || typeof reviewStore !== "object" || Array.isArray(reviewStore)) reviewStore = {};
-} catch (error) {
-  byId("review-error").textContent = "读取本地评定记录失败，请检查浏览器存储设置。";
-}
+let saveQueue = Promise.resolve(true);
+let exporting = false;
+let incidentEpisode;
 
 function reviewKey() {
   return JSON.stringify([batch.seed, batch.ids]);
@@ -726,21 +747,30 @@ function currentReview() {
 }
 
 function persistReviews() {
-  try {
-    localStorage.setItem("acceptance-reviews-v1", JSON.stringify(reviewStore));
-    byId("review-error").textContent = "";
-    return true;
-  } catch (error) {
-    byId("review-error").textContent = "本地保存失败，请检查浏览器存储空间和权限。";
-    return false;
-  }
+  const body = JSON.stringify(reviewStore);
+  saveQueue = saveQueue.then(async () => {
+    try {
+      const status = await fetchJSON("api/reviews", {
+        method: "POST", headers: {"Content-Type": "application/json"}, body,
+      });
+      Object.assign(inferenceState, status);
+      if (dataset) refreshInferenceUI();
+      byId("review-error").textContent = "";
+      return true;
+    } catch (error) {
+      byId("review-error").textContent = "服务端保存失败，请重试。";
+      return false;
+    }
+  });
+  return saveQueue;
 }
 
 function renderReviews() {
-  const enabled = !!batch?.generated;
+  const enabled = !!batch?.generated && !exporting;
+  byId("incident-open").disabled = !enabled;
   const record = batch ? currentReview() : {items: {}};
   const current = record.items[selected] || {};
-  byId("notes-open").disabled = !batch;
+  byId("notes-open").disabled = !batch || exporting;
   for (const id of ["mark-success", "mark-failure"]) byId(id).disabled = !enabled || !!current.confirmed;
   byId("mark-success").setAttribute("aria-pressed", current.choice === "success");
   byId("mark-failure").setAttribute("aria-pressed", current.choice === "failure");
@@ -783,34 +813,35 @@ function renderReviews() {
 for (const choice of ["success", "failure"]) {
   byId("mark-" + choice).addEventListener("click", () => {
     currentReview().items[selected] = {choice, confirmed: false};
+    persistReviews();
     renderReviews();
   });
 }
-byId("confirm-review").addEventListener("click", () => {
+byId("confirm-review").addEventListener("click", async () => {
   const item = currentReview().items[selected];
   if (!item?.choice || item.confirmed) return;
   item.confirmed = true;
-  if (!persistReviews()) item.confirmed = false;
+  if (!await persistReviews()) item.confirmed = false;
   renderReviews();
 });
-byId("reopen-review").addEventListener("click", () => {
+byId("reopen-review").addEventListener("click", async () => {
   const item = currentReview().items[selected];
   item.confirmed = false;
-  if (!persistReviews()) item.confirmed = true;
+  if (!await persistReviews()) item.confirmed = true;
   renderReviews();
 });
 byId("review-previous").addEventListener("click", () => changeSample(batch.ids[batch.ids.indexOf(selected) - 1]));
 byId("review-next").addEventListener("click", () => changeSample(batch.ids[batch.ids.indexOf(selected) + 1]));
 byId("notes-open").addEventListener("click", () => {
   byId("notes-text").value = currentReview().notes || "";
-  byId("notes-status").textContent = "自动保存到此浏览器";
+  byId("notes-status").textContent = "自动保存到服务端";
   byId("notes-dialog").showModal();
   byId("notes-text").focus();
 });
 byId("notes-close").addEventListener("click", () => byId("notes-dialog").close());
-byId("notes-text").addEventListener("input", event => {
+byId("notes-text").addEventListener("input", async event => {
   currentReview().notes = event.target.value;
-  byId("notes-status").textContent = persistReviews() ? "已保存" : "保存失败";
+  byId("notes-status").textContent = await persistReviews() ? "已保存" : "保存失败";
 });
 
 initialize();
@@ -866,3 +897,67 @@ function drawActionTimeline() {
   const split = x(trajectory.splitFrame);
   svg.append(svgElement("line", {x1: split, x2: split, y1: 0, y2: 56, class: "chart-split"}));
 }
+
+
+byId("export-results").addEventListener("click", async () => {
+  exporting = true;
+  byId("export-results").textContent = "正在导出…";
+  refreshInferenceUI();
+  renderReviews();
+  try {
+    if (!await persistReviews()) throw new Error("记录保存失败，请重试。");
+    const result = await fetchJSON("api/export", {method: "POST"});
+    Object.assign(inferenceState, {exported: true, export: result});
+    byId("export-path").textContent = `文件夹
+${result.folder}
+
+压缩包
+${result.archive}`;
+    byId("export-dialog").showModal();
+  } catch (error) {
+    byId("review-error").textContent = error.message;
+  } finally {
+    exporting = false;
+    byId("export-results").textContent = "导出";
+    refreshInferenceUI();
+    renderReviews();
+  }
+});
+
+const incidentForm = byId("incident-form");
+byId("incident-open").addEventListener("click", () => {
+  incidentEpisode = selected;
+  const record = currentReview();
+  const incident = record.incidents?.[incidentEpisode] || {};
+  for (const name of ["type", "other", "reason", "occurred_at", "handler", "follow_up"]) {
+    incidentForm.elements.namedItem(name).value = incident[name] || "";
+  }
+  byId("incident-title").textContent = `第 ${selected} 条 · 异常记录`;
+  byId("incident-other-label").hidden = incident.type !== "其他";
+  byId("incident-status").textContent = "自动保存到服务端";
+  byId("incident-dialog").showModal();
+});
+async function saveIncident() {
+  const record = currentReview();
+  record.incidents ||= {};
+  record.incidents[incidentEpisode] = {
+    ...Object.fromEntries(new FormData(incidentForm)),
+    updated_at: new Date().toISOString(),
+  };
+  byId("incident-other-label").hidden = record.incidents[incidentEpisode].type !== "其他";
+  byId("incident-status").textContent = "保存中…";
+  byId("incident-status").textContent = await persistReviews() ? "已保存" : "保存失败";
+}
+incidentForm.addEventListener("submit", event => event.preventDefault());
+incidentForm.addEventListener("input", saveIncident);
+byId("incident-now").addEventListener("click", () => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  incidentForm.elements.namedItem("occurred_at").value =
+    `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}`;
+  saveIncident();
+});
+byId("incident-close").addEventListener("click", () => byId("incident-dialog").close());

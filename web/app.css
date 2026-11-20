@@ -331,3 +331,11 @@ footer > p { display: none; }
 }
 
 .action-number.action-number-outside { fill: var(--ink); }
+
+#run-id { grid-column: 1 / -1; margin-top: .3rem; color: var(--muted); font-size: .72rem; text-align: right; overflow-wrap: anywhere; }
+#incident-dialog { width: min(42rem, calc(100% - 2rem)); }
+#incident-form { display: grid; gap: .75rem; }
+#incident-form label { display: grid; gap: .3rem; font-size: .85rem; }
+#incident-form input, #incident-form select, #incident-form textarea { width: 100%; padding: .5rem; background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: .4rem; font: inherit; }
+#incident-form textarea { min-height: 5rem; resize: vertical; }
+#export-path { white-space: pre-wrap; overflow-wrap: anywhere; }

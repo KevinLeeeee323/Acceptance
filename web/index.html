@@ -26,6 +26,7 @@
           <button id="resample" type="button" disabled>换一批数据</button>
         </form>
         <p id="batch-status" role="status"></p>
+        <p id="run-id"></p>
       </div>
     </header>
 
@@ -165,13 +166,39 @@
         <button id="mark-failure" type="button" disabled aria-pressed="false">本条标记为失败</button>
         <button id="confirm-review" type="button" disabled>确定</button>
         <button id="reopen-review" type="button" disabled>重新评定这一条</button>
+        <button id="incident-open" type="button" disabled>异常记录</button>
         <button id="review-previous" type="button" disabled>上一条</button>
         <button id="review-next" type="button" disabled>下一条</button>
+        <button id="export-results" type="button" disabled>导出</button>
         <button class="exit" id="exit" type="button">退出</button>
       </div>
     </footer>
   </div>
 
+  <dialog id="export-dialog" aria-labelledby="export-title">
+    <h2 id="export-title">导出完成，文件已核验</h2>
+    <p id="export-path"></p>
+    <form method="dialog"><button>关闭</button></form>
+  </dialog>
+  <dialog id="incident-dialog" aria-labelledby="incident-title">
+    <header class="notes-heading">
+      <h2 id="incident-title">异常记录</h2>
+      <span id="incident-status" role="status"></span>
+      <button id="incident-close" type="button" aria-label="关闭异常记录">×</button>
+    </header>
+    <form id="incident-form">
+      <label>现象<select name="type">
+        <option value="">请选择</option><option>机械臂故障</option><option>断电</option>
+        <option>推理模型服务端故障</option><option>验收 UI 脚本异常</option><option>其他</option>
+      </select></label>
+      <label id="incident-other-label" hidden>其他现象<input name="other"></label>
+      <label>原因与具体情况<textarea name="reason"></textarea></label>
+      <label>发生时间（北京时间）<input name="occurred_at" type="datetime-local" step="60"></label>
+      <button id="incident-now" type="button">当下</button>
+      <label>处理人<input name="handler"></label>
+      <label>跟进解决方式<textarea name="follow_up"></textarea></label>
+    </form>
+  </dialog>
   <dialog id="notes-dialog" aria-labelledby="notes-title">
     <header class="notes-heading">
       <h2 id="notes-title">备注</h2>

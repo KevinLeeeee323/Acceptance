@@ -16,6 +16,7 @@ from paired import CACHE, CAMERAS, DEFAULT_SEED, FPS, PairedDataset
 from trajectories import DATASET, default_liquid
 from inference import Inference
 from atomic_actions import load_actions
+from export_results import RunRecords
 
 WEB = Path(__file__).resolve().parent / "web"
 ASSETS = {
@@ -30,6 +31,7 @@ class ReviewServer(ThreadingHTTPServer):
         self.dataset = dataset
         self.actions = load_actions(dataset.cache)
         self.inference = Inference(dataset)
+        self.records = RunRecords(self.inference, dataset, self.actions)
         self.exit_token = secrets.token_urlsafe(32)
         super().__init__(address, ReviewHandler)
 
@@ -62,8 +64,12 @@ class ReviewHandler(BaseHTTPRequestHandler):
                 body = body.replace(b"__EXIT_TOKEN__", self.server.exit_token.encode("ascii"))
             self.send_bytes(HTTPStatus.OK, body, content_type)
             return
+        if path == "/api/reviews":
+            with self.server.records.lock:
+                self.send_json(HTTPStatus.OK, {"reviews": self.server.records.reviews, **self.server.records.status()})
+            return
         if path == "/api/inference":
-            self.send_json(HTTPStatus.OK, self.server.inference.snapshot())
+            self.send_json(HTTPStatus.OK, {**self.server.inference.snapshot(), **self.server.records.status()})
             return
         result_match = re.fullmatch(r"/api/inference/([0-9]{1,2})", path)
         if result_match:
@@ -161,19 +167,34 @@ class ReviewHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlsplit(self.path).path
+        if path in ("/api/reviews", "/api/export"):
+            try:
+                if path == "/api/reviews":
+                    size = int(self.headers.get("Content-Length", "0"))
+                    if not 0 < size <= 2_000_000:
+                        raise ValueError("保存内容过大或为空")
+                    payload = self.server.records.update_reviews(json.loads(self.rfile.read(size)))
+                else:
+                    payload = self.server.records.export()
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                self.send_json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
+            else:
+                self.send_json(HTTPStatus.OK, payload)
+            return
         if path in ("/api/inference/start", "/api/inference/stop"):
             try:
                 if path.endswith("/start"):
                     size = int(self.headers.get("Content-Length", "0"))
                     if not 0 < size <= 4096:
                         raise ValueError("请求大小无效")
-                    self.server.inference.start(json.loads(self.rfile.read(size))["ids"])
+                    data = json.loads(self.rfile.read(size))
+                    self.server.records.begin(data["ids"], data["seed"])
                 else:
                     self.server.inference.cancel()
             except (ValueError, KeyError, TypeError) as error:
                 self.send_json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
             else:
-                self.send_json(HTTPStatus.OK, self.server.inference.snapshot())
+                self.send_json(HTTPStatus.OK, {**self.server.inference.snapshot(), **self.server.records.status()})
             return
         if path != "/api/shutdown":
             self.send_json(HTTPStatus.NOT_FOUND, {"error": "找不到请求的资源。"})
@@ -182,6 +203,10 @@ class ReviewHandler(BaseHTTPRequestHandler):
         if not secrets.compare_digest(provided_token, self.server.exit_token.encode("ascii")):
             self.send_json(HTTPStatus.FORBIDDEN, {"error": "退出请求失效，请刷新页面后重试。"})
             return
+        with self.server.records.lock:
+            if self.server.records.started and not self.server.records.verified():
+                self.send_json(HTTPStatus.CONFLICT, {"error": "没有核验通过的最新导出结果，请先完成全部推理并导出后再退出。"})
+                return
         self.server.inference.cancel()
         self.server.inference.closed.set()
         self.send_json(HTTPStatus.OK, {"status": "stopping"})
@@ -196,10 +221,13 @@ def main():
     parser.add_argument("--dataset", type=Path, default=DATASET)
     parser.add_argument("--liquid-dataset", type=Path, default=default_liquid())
     parser.add_argument("--cache-dir", type=Path, default=CACHE)
+    parser.add_argument("--restore-run", type=Path, help="恢复已完成推理的运行快照")
     args = parser.parse_args()
     try:
         dataset = PairedDataset(args.dataset, args.liquid_dataset, args.cache_dir)
         with ReviewServer((args.host, args.port), dataset) as server:
+            if args.restore_run:
+                server.records.restore(json.loads(args.restore_run.read_text(encoding="utf-8")))
             print(f"验收 UI  http://{args.host}:{server.server_port}/", flush=True)
             server.serve_forever()
     except KeyboardInterrupt:

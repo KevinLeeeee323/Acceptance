@@ -1,0 +1,23 @@
+{
+  "verified_at": "2026-11-20",
+  "verification": "ssh 3090 读取硬件、系统、kai0 .venv 软件版本及 serve_policy.py 进程",
+  "host": "10.132.90.113",
+  "cpu": "AMD Ryzen Threadripper PRO 5995WX, 64 cores / 128 threads",
+  "memory": "125 GiB（约128 GiB）",
+  "gpu": "NVIDIA GeForce RTX 3090 Ti ×2, 24564 MiB each",
+  "disk": "2 TB NVMe, WDS200T1X0E-00AFY0",
+  "network": "Intel Ethernet Controller 10G X550T",
+  "driver": "595.91.07",
+  "os": "Ubuntu 22.04.5 LTS",
+  "environment": "~/kai0/.venv",
+  "python": "3.11.15",
+  "torch": "2.7.1",
+  "jax": "0.5.3",
+  "jaxlib": "0.5.3",
+  "opencv-python": "4.11.0.86",
+  "numpy": "1.26.4",
+  "openpi": "0.1.0",
+  "websockets": "15.0.1",
+  "solid_command": "cd ~/kai0 && CUDA_VISIBLE_DEVICES=0 uv run scripts/serve_policy.py --port 8002 policy:checkpoint --policy.config=solid_agilex --policy.dir=/home/hdy/checkpoints/solid_awbc_99999",
+  "liquid_command": "cd ~/kai0 && CUDA_VISIBLE_DEVICES=1 uv run scripts/serve_policy.py --port 8001 policy:checkpoint --policy.config=liquid_agilex --policy.dir=/home/hdy/checkpoints/liquid_awbc_119999/liquid_awbc_119999/"
+}
