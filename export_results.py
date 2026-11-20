@@ -38,6 +38,14 @@ def digest(path):
         return checksum.hexdigest()
 
 
+def batch_ids(key):
+    value = json.loads(key)
+    # Accept previously saved [seed, ids] keys as well as fixed-list keys.
+    if len(value) == 2 and isinstance(value[1], list):
+        return value[1]
+    return value
+
+
 class RunRecords:
     def __init__(self, inference, dataset, actions, logs=None):
         self.inference, self.dataset, self.actions = inference, dataset, actions
@@ -58,10 +66,10 @@ class RunRecords:
                 "exported": self.export_revision == self.revision and self.last_export is not None,
                 "export": self.last_export}
 
-    def begin(self, ids, seed):
-        if type(seed) is not int or seed < 42:
-            raise ValueError("批次种子无效")
-        key = json.dumps([seed, ids], separators=(",", ":"))
+    def begin(self, ids):
+        if ids != self.dataset.ids:
+            raise ValueError("推理名单必须与固定展示清单一致")
+        key = json.dumps(ids, separators=(",", ":"))
         with self.lock:
             if self.started and key != self.active_key and not self.verified():
                 raise ValueError("请先完成当前运行并导出，再开始另一批推理")
@@ -74,10 +82,8 @@ class RunRecords:
 
     def restore(self, snapshot):
         ids = snapshot["state"]["ids"]
-        seed = snapshot.get("seed", 42)
-        if (not ids or len(ids) != len(set(ids)) or any(type(i) is not int or i not in self.dataset.ids for i in ids)
-                or type(seed) is not int or seed < 42):
-            raise ValueError("恢复文件的样本名单或种子无效")
+        if not ids or len(ids) != len(set(ids)) or any(type(i) is not int or i not in self.dataset.ids for i in ids):
+            raise ValueError("恢复文件的样本名单无效")
         results = {}
         for episode in ids:
             result = snapshot["results"][str(episode)]
@@ -90,10 +96,15 @@ class RunRecords:
                 raise ValueError("恢复文件与当前参考轨迹不匹配")
             results[episode] = {"prediction": prediction.tolist(), "rmse": rmse.tolist(),
                                 "overall": float(np.sqrt(np.mean(rmse[:6] ** 2)))}
-        self.active_key = json.dumps([seed, ids], separators=(",", ":"))
+        self.active_key = json.dumps(ids, separators=(",", ":"))
         self.started = True
         self.revision += 1
         self.reviews = snapshot.get("reviews", {})
+        if self.active_key not in self.reviews:
+            for key, record in list(self.reviews.items()):
+                if batch_ids(key) == ids:
+                    self.reviews[self.active_key] = record
+                    break
         with self.inference.lock:
             self.inference.ids = ids
             self.inference.results = results
@@ -119,8 +130,8 @@ class RunRecords:
             raise ValueError("评定记录无效")
         # Only accept the bounded, documented fields exported below.
         for key, record in records.items():
-            seed, ids = json.loads(key)
-            if type(seed) is not int or not isinstance(ids, list) or not ids or any(i not in self.dataset.ids for i in ids):
+            ids = batch_ids(key)
+            if not isinstance(ids, list) or not ids or any(i not in self.dataset.episodes for i in ids):
                 raise ValueError("评定批次无效")
             if not isinstance(record.get("notes", ""), str) or not isinstance(record.get("items", {}), dict):
                 raise ValueError("备注或评定格式无效")
@@ -170,9 +181,9 @@ class RunRecords:
             with self.inference.lock:
                 ids = self.inference.ids[:]
                 if not self.started or self.inference.running or not ids or any(i not in self.inference.results for i in ids):
-                    raise ValueError("全部抽样数据推理完成后才能导出")
+                    raise ValueError("全部固定条目推理完成后才能导出")
                 results = dict(self.inference.results)
-            seed, expected_ids = json.loads(self.active_key)
+            expected_ids = batch_ids(self.active_key)
             if expected_ids != ids:
                 raise ValueError("当前批次与推理结果不匹配")
             record = self.reviews.get(self.active_key, {})
@@ -234,7 +245,8 @@ class RunRecords:
                 confirmed = sum(bool(v.get("confirmed")) for k, v in items.items() if int(k) in ids)
                 files = {str(path.relative_to(folder)): digest(path) for path in folder.rglob("*") if path.is_file()}
                 write_json(folder / "batch_summary.json", {
-                    "schema_version": 1, "run_id": self.run_id, "seed": seed, "sample_ids": ids,
+                    "schema_version": 1, "run_id": self.run_id, "sample_ids": ids,
+                    "selection": getattr(self.dataset, "selection", {}),
                     "created_at": self.created_at, "exported_at": now(), "sample_count": len(ids),
                     "completed_count": len(ids), "confirmed_count": confirmed, "success_count": success,
                     "success_rate": success / len(ids), "files": files,

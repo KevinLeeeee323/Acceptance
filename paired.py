@@ -6,19 +6,17 @@ import hashlib
 import json
 import os
 from pathlib import Path
-from random import Random
 from tempfile import mkstemp
 from threading import Lock
 
 import av
 
-from trajectories import Dataset, EPISODES
+from trajectories import Dataset
 
 CAMERAS = ("cam_left_wrist", "cam_high", "cam_right_wrist")
 SOLID_FRAMES = 2050
 LIQUID_FRAMES = 1100
 FPS = 30
-DEFAULT_SEED = 42
 CACHE = Path(__file__).resolve().parent / ".acceptance-cache"
 
 
@@ -30,9 +28,10 @@ class PairedDataset:
         if any(source.info["fps"] != FPS for source in (self.solid, self.liquid)):
             raise ValueError("固体与液体数据都应为 30 Hz")
         self.cache = Path(cache)
-        self.locks = {episode: Lock() for episode in EPISODES}
+        self.episodes = range(min(len(self.solid.episodes), len(self.liquid.episodes)))
+        self.locks = {episode: Lock() for episode in self.episodes}
         self.samples = []
-        for episode in EPISODES:
+        for episode in self.episodes:
             if (self.solid.samples[episode]["frames"] != SOLID_FRAMES
                     or self.liquid.samples[episode]["frames"] != LIQUID_FRAMES):
                 continue
@@ -41,22 +40,23 @@ class PairedDataset:
                 self.samples.append({"id": episode, "frames": SOLID_FRAMES + LIQUID_FRAMES})
         self.ids = [sample["id"] for sample in self.samples]
         if not self.ids:
-            raise ValueError("编号 0–49 中没有文件齐全、帧数匹配的固液配对样本")
+            raise ValueError("两套数据集中没有文件齐全、帧数匹配的同编号配对样本")
 
-    def sample(self, count, seed, previous):
-        if not 1 <= count <= len(self.ids) or not DEFAULT_SEED <= seed <= 2**53 - 1:
-            raise ValueError("抽样条数或随机种子超出范围")
-        rng = Random(seed)
-        ids = rng.sample(self.ids, count)
-        if set(ids) == set(previous):
-            if count < len(self.ids):
-                # Keep the incremented seed and replace one selection on a membership collision.
-                candidates = [episode for episode in self.ids if episode not in previous]
-                ids[rng.randrange(count)] = rng.choice(candidates)
-            elif count > 1 and ids == previous:
-                # A full batch can only change its order.
-                ids = ids[1:] + ids[:1]
-        return ids
+    def load_selection(self):
+        path = Path(__file__).resolve().parent / "OverAllInpsect/selected_samples.json"
+        if not path.is_file():
+            raise ValueError("尚未完成合格样本筛选，缺少 OverAllInpsect/selected_samples.json")
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        ids = manifest["ordered_ids"]
+        if len(ids) != 50 or len(set(ids)) != 50 or any(type(i) is not int or i not in self.ids for i in ids):
+            raise ValueError("固定清单必须包含 50 条有效且不重复的配对数据")
+        lookup = {row["episode"]: row for row in manifest["records"]}
+        if any(i not in lookup or not 0 <= lookup[i]["overall"] < .1 for i in ids):
+            raise ValueError("固定清单中的当次 RMSE 不符合 <0.1 rad")
+        available = {sample["id"]: sample for sample in self.samples}
+        self.ids = ids
+        self.samples = [available[i] for i in ids]
+        self.selection = manifest
 
     def cache_path(self, episode, name, sources, configuration=()):
         identity = ["paired-v1", *configuration]

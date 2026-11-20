@@ -74,27 +74,6 @@ h1 { margin-top: .25rem; font-size: clamp(1.3rem, 3vw, 2rem); letter-spacing: -.
 }
 .batch #model-status { display: flex; align-items: center; align-self: end; min-height: 2.3rem; margin: 0; white-space: nowrap; }
 .batch #batch-status { grid-column: 2; }
-.batch-controls { display: flex; flex-wrap: wrap; align-items: end; gap: .5rem; }
-.batch-controls label {
-  display: grid;
-  gap: .25rem;
-  font-size: .78rem;
-  color: var(--muted);
-}
-.batch-controls input {
-  width: 5.1rem;
-  color: var(--ink);
-  background: var(--surface);
-}
-.batch-controls button, .batch-controls input {
-  border: 1px solid var(--border);
-  border-radius: .55rem;
-  min-height: 2.3rem;
-  padding: .35rem .65rem;
-}
-.batch-controls button { background: var(--surface); font-size: .83rem; }
-.batch-controls button:hover:not(:disabled) { border-color: var(--accent); }
-.batch-controls .primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
 #batch-status { margin-top: .38rem; font-size: .75rem; color: var(--muted); min-height: 1em; }
 #sample-meta, #sample-count, footer p { color: var(--muted); }
 .pagination, .sample-index, .frame-control output { font-variant-numeric: tabular-nums; }
@@ -263,9 +242,6 @@ dialog form { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 
 }
 @media (max-width: 600px) {
   .batch { width: 100%; column-gap: .75rem; }
-  .batch-controls { gap: .4rem; }
-  .batch-controls label { grid-template-columns: auto auto; align-items: center; }
-  .batch-controls button { font-size: .76rem; }
   .batch #model-status { white-space: normal; max-width: 9rem; font-size: .75rem; }
   .metric-row { gap: .7rem; }
   .metric dd strong { font-size: .95rem; }

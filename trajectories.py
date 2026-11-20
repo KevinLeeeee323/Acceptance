@@ -1,4 +1,4 @@
-"""Read the expert right-arm action trajectory for episodes 0–49."""
+"""Read the expert right-arm action trajectory for dataset episodes."""
 
 import argparse
 import json
@@ -9,7 +9,6 @@ import pyarrow.parquet as parquet
 
 DATASET = Path("/data2/organ_data_le/solid/measure_solid_0630")
 LIQUID = Path("/data/organ_data_le/liquid/measure_liquid_full_0622")
-EPISODES = range(50)
 
 
 def default_liquid():
@@ -29,8 +28,9 @@ class Dataset:
             raise ValueError(f"{self.root.name} 应包含 7 个 {arm} 臂 action 维度")
         self.indices = tuple(names.index(name) for name in self.joints)
         self.action_width = len(names)
+        self.episodes = range(self.info["total_episodes"])
         self.samples = []
-        for episode in EPISODES:
+        for episode in self.episodes:
             path = self.path_for(episode)
             self.samples.append({
                 "id": episode,
@@ -44,8 +44,8 @@ class Dataset:
         return self.format_path("video_path", episode, video_key=f"observation.images.{camera}")
 
     def format_path(self, template, episode, **fields):
-        if episode not in EPISODES:
-            raise ValueError("条目编号应在 0–49 之间")
+        if episode not in self.episodes:
+            raise ValueError(f"条目编号应在 0–{len(self.episodes) - 1} 之间")
         return self.root / self.info[template].format(
             episode_chunk=episode // self.info["chunks_size"],
             episode_index=episode,
@@ -85,7 +85,7 @@ class Dataset:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("episode", type=int, choices=EPISODES, metavar="0–49")
+    parser.add_argument("episode", type=int, metavar="EPISODE")
     parser.add_argument("--dataset", type=Path, default=DATASET)
     args = parser.parse_args()
     dataset = Dataset(args.dataset)

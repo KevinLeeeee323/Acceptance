@@ -8,11 +8,11 @@ from pathlib import Path
 import re
 import secrets
 from threading import Thread
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import urlsplit
 
 import av
 
-from paired import CACHE, CAMERAS, DEFAULT_SEED, FPS, PairedDataset
+from paired import CACHE, CAMERAS, FPS, PairedDataset
 from trajectories import DATASET, default_liquid
 from inference import Inference
 from atomic_actions import load_actions
@@ -28,6 +28,7 @@ ASSETS = {
 
 class ReviewServer(ThreadingHTTPServer):
     def __init__(self, address, dataset):
+        dataset.load_selection()
         self.dataset = dataset
         self.actions = load_actions(dataset.cache)
         self.inference = Inference(dataset)
@@ -84,21 +85,9 @@ class ReviewHandler(BaseHTTPRequestHandler):
                 "joints": dataset.solid.joints,
                 "samples": dataset.samples,
                 "cameras": CAMERAS,
-                "defaultSeed": DEFAULT_SEED,
+                "fixedSelection": True,
                 "atomicActions": self.server.actions,
             })
-            return
-        if path == "/api/batch":
-            params = parse_qs(url.query)
-            try:
-                count = int(params["count"][0])
-                seed = int(params["seed"][0])
-                previous = [int(value) for value in params["previous"][0].split(",")] if "previous" in params else []
-                ids = dataset.sample(count, seed, previous)
-            except (KeyError, ValueError):
-                self.send_json(HTTPStatus.BAD_REQUEST, {"error": "抽样条数或随机种子无效。"})
-            else:
-                self.send_json(HTTPStatus.OK, {"ids": ids})
             return
         match = re.fullmatch(r"/api/samples/([0-9]{1,2})(?:/video/(cam_[a-z_]+)\.mp4)?", path)
         if match:
@@ -188,7 +177,7 @@ class ReviewHandler(BaseHTTPRequestHandler):
                     if not 0 < size <= 4096:
                         raise ValueError("请求大小无效")
                     data = json.loads(self.rfile.read(size))
-                    self.server.records.begin(data["ids"], data["seed"])
+                    self.server.records.begin(data["ids"])
                 else:
                     self.server.inference.cancel()
             except (ValueError, KeyError, TypeError) as error:
@@ -204,8 +193,15 @@ class ReviewHandler(BaseHTTPRequestHandler):
             self.send_json(HTTPStatus.FORBIDDEN, {"error": "退出请求失效，请刷新页面后重试。"})
             return
         with self.server.records.lock:
-            if self.server.records.started and not self.server.records.verified():
-                self.send_json(HTTPStatus.CONFLICT, {"error": "没有核验通过的最新导出结果，请先完成全部推理并导出后再退出。"})
+            with self.server.inference.lock:
+                complete = bool(self.server.inference.ids) and all(
+                    i in self.server.inference.results for i in self.server.inference.ids)
+            if self.server.records.started and not complete:
+                if self.headers.get("X-Allow-Incomplete-Exit") != "true":
+                    self.send_json(HTTPStatus.CONFLICT, {"error": "未完成全部数据的推理验证，是否关闭验收页面？关闭后将无法保存已验收的数据。"})
+                    return
+            elif self.server.records.started and not self.server.records.verified():
+                self.send_json(HTTPStatus.CONFLICT, {"error": "请先导出并核验最新结果后再退出。"})
                 return
         self.server.inference.cancel()
         self.server.inference.closed.set()

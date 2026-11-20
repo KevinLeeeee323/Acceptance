@@ -18,13 +18,6 @@
       </div>
       <div class="batch">
         <p id="model-status" role="status"><span class="lamp waiting"></span>等待推理模型服务</p>
-        <form id="batch-form" class="batch-controls">
-          <label>抽样条数
-            <input id="sample-size" type="number" min="1" max="50" value="20" required>
-          </label>
-          <button id="generate" class="primary" type="submit" disabled>生成验收批次</button>
-          <button id="resample" type="button" disabled>换一批数据</button>
-        </form>
         <p id="batch-status" role="status"></p>
         <p id="run-id"></p>
       </div>
@@ -43,9 +36,9 @@
       <section class="outcomes surface" aria-labelledby="outcome-title">
         <p class="eyebrow">REVIEW OUTCOME</p>
         <h2 id="outcome-title">成功率统计</h2>
-        <div id="outcome-grid" aria-label="抽样条目评定结果"></div>
+        <div id="outcome-grid" aria-label="固定条目评定结果"></div>
         <p id="success-rate" class="success-rate">0.0%</p>
-        <p id="outcome-count" role="status">等待生成验收批次</p>
+        <p id="outcome-count" role="status">正在加载固定清单</p>
         <p id="outcome-complete" hidden>已完成对所有抽样数据的评定</p>
         <button id="notes-open" type="button" disabled>备注</button>
       </section>

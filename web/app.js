@@ -7,10 +7,6 @@ const notice = byId("notice");
 let chartFrame = 0;
 const previous = byId("previous");
 const next = byId("next");
-const batchForm = byId("batch-form");
-const sampleSize = byId("sample-size");
-const generate = byId("generate");
-const resample = byId("resample");
 const videoPanel = byId("video-panel");
 const cameras = byId("cameras");
 
@@ -90,44 +86,15 @@ function showBatch() {
     return button;
   }));
   byId("sample-count").textContent = batch ? `${batch.ids.length} 条` : "";
-  byId("batch-status").textContent = batch
-    ? `Seed ${batch.seed} · ${batch.generated ? "已生成" : "待生成"}`
-    : `${dataset.samples.length} 条配对可抽样 · 初始 Seed ${dataset.defaultSeed}`;
+  byId("batch-status").textContent = `${batch?.ids.length || 50} 条固定验收数据`;
   renderReviews();
-}
-
-async function updateBatch(replaceBatch) {
-  if (!batchForm.reportValidity() || generate.disabled || inferenceState.running || exporting) return;
-  const count = sampleSize.valueAsNumber;
-  generate.disabled = resample.disabled = sampleSize.disabled = true;
-  try {
-    const seed = (batch?.seed ?? dataset.defaultSeed) + (batch && replaceBatch ? 1 : 0);
-    if (!batch || replaceBatch || batch.ids.length !== count) {
-      const params = new URLSearchParams({count, seed});
-      if (replaceBatch && batch) params.set("previous", batch.ids.join(","));
-      const {ids} = await fetchJSON(`api/batch?${params}`);
-      batch = {ids, seed, generated: !replaceBatch};
-    } else {
-      batch = {...batch, generated: true};
-    }
-    showBatch();
-    refreshInferenceUI();
-    loadSample(!replaceBatch && batch.ids.includes(selected) ? selected : batch.ids[0]);
-    saveSelection(true);
-  } catch (error) {
-    byId("batch-status").textContent = error instanceof TypeError ? "连接验收服务失败，请重试。" : error.message;
-  } finally {
-    generate.disabled = resample.disabled = sampleSize.disabled = inferenceState.running || exporting;
-  }
 }
 
 function restoreBatch() {
   const saved = history.state?.batch;
   if (!Array.isArray(saved?.ids) || !saved.ids.length
-      || new Set(saved.ids).size !== saved.ids.length || !Number.isSafeInteger(saved.seed)
-      || !saved.ids.every(id => dataset.samples.some(sample => sample.id === id))) return false;
-  batch = saved;
-  sampleSize.value = batch.ids.length;
+      || JSON.stringify(saved.ids) !== JSON.stringify(dataset.samples.map(sample => sample.id))) return false;
+  batch = {...saved, generated: true};
   showBatch();
   const requested = Number(new URLSearchParams(location.search).get("sample") ?? NaN);
   loadSample(batch.ids.includes(requested) ? requested : batch.ids[0]);
@@ -180,7 +147,7 @@ async function loadSample(id) {
   cameras.replaceChildren();
   notice.hidden = false;
   if (!batch.generated) {
-    notice.textContent = "已换一批数据，点击「生成验收批次」查看轨迹。";
+    notice.textContent = "正在加载固定验收清单…";
     return;
   }
   notice.textContent = `正在加载第 ${id} 条轨迹…`;
@@ -217,13 +184,12 @@ async function initialize() {
       }
     }
     byId("run-id").textContent = `运行 ID · ${savedReviews.runId}`;
-    sampleSize.max = dataset.samples.length;
-    sampleSize.value = Math.min(Number(sampleSize.value), dataset.samples.length);
-    generate.disabled = resample.disabled = false;
     renderActionLegend();
     if (!restoreBatch()) {
+      batch = {ids: dataset.samples.map(sample => sample.id), generated: true};
       showBatch();
-      notice.textContent = "选择抽样条数，然后点击「生成验收批次」。";
+      loadSample(batch.ids[0]);
+      saveSelection(true);
     }
   } catch (error) {
     showError(error, initialize);
@@ -570,11 +536,6 @@ function layoutChart(chart, showFrameTicks) {
 window.addEventListener("popstate", () => {
   if (dataset) restoreBatch();
 });
-batchForm.addEventListener("submit", event => {
-  event.preventDefault();
-  updateBatch(false);
-});
-resample.addEventListener("click", () => updateBatch(true));
 previous.addEventListener("click", () => changeSample(batch.ids[batch.ids.indexOf(selected) - 1]));
 next.addEventListener("click", () => changeSample(batch.ids[batch.ids.indexOf(selected) + 1]));
 new ResizeObserver(drawCharts).observe(plot);
@@ -587,10 +548,12 @@ const exitError = byId("exit-error");
 byId("exit").addEventListener("click", async () => {
   await saveQueue;
   exitError.hidden = true;
-  const needsExport = inferenceState.started && !inferenceState.exported;
+  const incomplete = inferenceState.started && inferenceState.ids.some(id => inferenceState.states[id] !== "completed");
+  const needsExport = inferenceState.started && !incomplete && !inferenceState.exported;
   confirmExit.disabled = needsExport;
-  byId("exit-description").textContent = needsExport
-    ? "没有进行过导出，或结果已修改。请先完成本批次全部推理，并成功导出最新结果后再退出。"
+  byId("exit-description").textContent = incomplete
+    ? "未完成全部数据的推理验证，是否关闭验收页面？关闭后将无法保存已验收的数据。"
+    : needsExport ? "请先导出并核验最新结果后再退出。"
     : "确认后将关闭验收服务，所有已打开的验收页面都会断开连接。";
   dialog.showModal();
 });
@@ -604,7 +567,11 @@ confirmExit.addEventListener("click", async () => {
   try {
     await fetchJSON("api/shutdown", {
       method: "POST",
-      headers: {"X-Exit-Token": document.querySelector('meta[name="exit-token"]').content},
+      headers: {
+        "X-Exit-Token": document.querySelector('meta[name="exit-token"]').content,
+        "X-Allow-Incomplete-Exit": String(!!inferenceState.started &&
+          inferenceState.ids.some(id => inferenceState.states[id] !== "completed")),
+      },
     });
     pending?.abort();
     pauseVideos();
@@ -631,7 +598,6 @@ function refreshInferenceUI() {
   const lamp = document.createElement("span");
   lamp.className = "lamp " + (inferenceState.ready ? "completed" : "waiting");
   byId("model-status").append(lamp, inferenceState.ready ? "模型推理服务已就绪" : "等待推理模型服务");
-  generate.disabled = resample.disabled = sampleSize.disabled = inferenceState.running || exporting;
   byId("start-inference").disabled = !batch?.generated || inferenceState.running || !inferenceState.ready;
   byId("stop-inference").disabled = !inferenceState.running || inferenceState.stopping;
   byId("inference-status").textContent = inferenceState.error ||
@@ -707,7 +673,7 @@ async function inferenceCommand(command) {
     if (command === "start" && !await persistReviews()) return;
     inferenceState = await fetchJSON(`api/inference/${command}`, {
       method: "POST", headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ids: batch?.ids, seed: batch?.seed}),
+      body: JSON.stringify({ids: batch?.ids}),
     });
     refreshInferenceUI();
   } catch (error) {
@@ -734,7 +700,7 @@ let exporting = false;
 let incidentEpisode;
 
 function reviewKey() {
-  return JSON.stringify([batch.seed, batch.ids]);
+  return JSON.stringify(batch.ids);
 }
 
 function currentReview() {

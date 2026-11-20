@@ -1,0 +1,170 @@
+[
+  {
+    "episode": 4,
+    "started_at": "2026-11-20T19:37:38+08:00",
+    "overall": 240.55447822350388,
+    "rmse": [
+      0.039637760111071604,
+      0.08647959557005111,
+      0.05696769044825082,
+      0.05988916975011522,
+      589.235703840023,
+      0.10676395945163147,
+      0.0038521863681903134
+    ],
+    "accepted": false,
+    "max_abs_joint": 2.3771990808309056,
+    "max_abs_gripper": 0.06892154644267111,
+    "type": "extreme_values",
+    "reference_max_abs_joint": 33070.77734375,
+    "reference_outlier_points": [
+      {
+        "joint_id": 5,
+        "frame": 965,
+        "value_rad": 33070.77734375,
+        "phase": "Solid",
+        "local_frame": 965
+      }
+    ]
+  },
+  {
+    "episode": 16,
+    "started_at": "2026-11-20T19:40:44+08:00",
+    "overall": 240.55987106523304,
+    "rmse": [
+      589.2258615352728,
+      0.16522252620887792,
+      0.0771996360935894,
+      5.2084065464203935,
+      0.12399287456403758,
+      0.13178881622138128,
+      0.00810920128781137
+    ],
+    "accepted": false,
+    "max_abs_joint": 2.438872485458159,
+    "max_abs_gripper": 0.06915514559489225,
+    "type": "extreme_values",
+    "reference_max_abs_joint": 33070.77734375,
+    "reference_outlier_points": [
+      {
+        "joint_id": 1,
+        "frame": 1589,
+        "value_rad": 33070.77734375,
+        "phase": "Solid",
+        "local_frame": 1589
+      },
+      {
+        "joint_id": 4,
+        "frame": 1618,
+        "value_rad": -292.6617431640625,
+        "phase": "Solid",
+        "local_frame": 1618
+      }
+    ]
+  },
+  {
+    "episode": 33,
+    "started_at": "2026-11-20T19:45:09+08:00",
+    "overall": 481.1145367182511,
+    "rmse": [
+      0.02424026435725305,
+      0.07570563795440538,
+      833.3162738726118,
+      0.07247228982736229,
+      833.3133604300976,
+      0.06408043375794618,
+      0.002605709346413995
+    ],
+    "accepted": false,
+    "max_abs_joint": 2.4550791774992335,
+    "max_abs_gripper": 0.06975291354829274,
+    "type": "extreme_values",
+    "reference_max_abs_joint": 33070.77734375,
+    "reference_outlier_points": [
+      {
+        "joint_id": 3,
+        "frame": 2414,
+        "value_rad": 33070.77734375,
+        "phase": "Liquid",
+        "local_frame": 364
+      },
+      {
+        "joint_id": 3,
+        "frame": 2575,
+        "value_rad": 33070.77734375,
+        "phase": "Liquid",
+        "local_frame": 525
+      },
+      {
+        "joint_id": 5,
+        "frame": 2067,
+        "value_rad": 33070.77734375,
+        "phase": "Liquid",
+        "local_frame": 17
+      },
+      {
+        "joint_id": 5,
+        "frame": 2385,
+        "value_rad": 33070.77734375,
+        "phase": "Liquid",
+        "local_frame": 335
+      }
+    ]
+  },
+  {
+    "episode": 34,
+    "started_at": "2026-11-20T19:45:25+08:00",
+    "overall": 240.55439090255575,
+    "rmse": [
+      589.2354786053405,
+      0.11401692027870008,
+      0.044628724394494786,
+      0.06899580910390272,
+      0.11993737508873231,
+      0.08068925603430542,
+      0.0036010819872354305
+    ],
+    "accepted": false,
+    "max_abs_joint": 2.3308587665104064,
+    "max_abs_gripper": 0.06993618646213548,
+    "type": "extreme_values",
+    "reference_max_abs_joint": 33070.77734375,
+    "reference_outlier_points": [
+      {
+        "joint_id": 1,
+        "frame": 47,
+        "value_rad": 33070.77734375,
+        "phase": "Solid",
+        "local_frame": 47
+      }
+    ]
+  },
+  {
+    "episode": 42,
+    "started_at": "2026-11-20T19:47:29+08:00",
+    "overall": 240.55181116715318,
+    "rmse": [
+      0.03234091314572394,
+      0.06711726568700312,
+      0.03799308242100528,
+      0.05447566610714974,
+      589.2291826407354,
+      0.0591403638171335,
+      0.004342464238404532
+    ],
+    "accepted": false,
+    "max_abs_joint": 2.489108331214501,
+    "max_abs_gripper": 0.06989415062497487,
+    "type": "extreme_values",
+    "reference_max_abs_joint": 33070.77734375,
+    "reference_outlier_points": [
+      {
+        "joint_id": 5,
+        "frame": 813,
+        "value_rad": 33070.77734375,
+        "phase": "Solid",
+        "local_frame": 813
+      }
+    ]
+  }
+]
