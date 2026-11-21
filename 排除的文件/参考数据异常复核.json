@@ -1,0 +1,95 @@
+[
+  {
+    "episode": 4,
+    "type": "reference_action_outlier",
+    "points": [
+      {
+        "joint_id": 5,
+        "frame": 965,
+        "value_rad": 33070.77734375,
+        "phase": "Solid",
+        "local_frame": 965
+      }
+    ]
+  },
+  {
+    "episode": 16,
+    "type": "reference_action_outlier",
+    "points": [
+      {
+        "joint_id": 1,
+        "frame": 1589,
+        "value_rad": 33070.77734375,
+        "phase": "Solid",
+        "local_frame": 1589
+      },
+      {
+        "joint_id": 4,
+        "frame": 1618,
+        "value_rad": -292.6617431640625,
+        "phase": "Solid",
+        "local_frame": 1618
+      }
+    ]
+  },
+  {
+    "episode": 33,
+    "type": "reference_action_outlier",
+    "points": [
+      {
+        "joint_id": 3,
+        "frame": 2414,
+        "value_rad": 33070.77734375,
+        "phase": "Liquid",
+        "local_frame": 364
+      },
+      {
+        "joint_id": 3,
+        "frame": 2575,
+        "value_rad": 33070.77734375,
+        "phase": "Liquid",
+        "local_frame": 525
+      },
+      {
+        "joint_id": 5,
+        "frame": 2067,
+        "value_rad": 33070.77734375,
+        "phase": "Liquid",
+        "local_frame": 17
+      },
+      {
+        "joint_id": 5,
+        "frame": 2385,
+        "value_rad": 33070.77734375,
+        "phase": "Liquid",
+        "local_frame": 335
+      }
+    ]
+  },
+  {
+    "episode": 34,
+    "type": "reference_action_outlier",
+    "points": [
+      {
+        "joint_id": 1,
+        "frame": 47,
+        "value_rad": 33070.77734375,
+        "phase": "Solid",
+        "local_frame": 47
+      }
+    ]
+  },
+  {
+    "episode": 42,
+    "type": "reference_action_outlier",
+    "points": [
+      {
+        "joint_id": 5,
+        "frame": 813,
+        "value_rad": 33070.77734375,
+        "phase": "Solid",
+        "local_frame": 813
+      }
+    ]
+  }
+]

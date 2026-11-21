@@ -1,0 +1,178 @@
+[
+  {
+    "number": 1,
+    "phase": "Solid",
+    "name": "夹取漏斗",
+    "description": "右机械臂从初始位置出发，夹取漏斗。",
+    "localStart": 120,
+    "localEnd": 230,
+    "start": 120,
+    "end": 230,
+    "color": "#24869d"
+  },
+  {
+    "number": 2,
+    "phase": "Solid",
+    "name": "放置漏斗至反应锥",
+    "description": "右机械臂将夹取的漏斗放置到反应锥上。完成后右机械臂复原到初始位置。",
+    "localStart": 230,
+    "localEnd": 450,
+    "start": 230,
+    "end": 450,
+    "color": "#5c914c"
+  },
+  {
+    "number": 3,
+    "phase": "Solid",
+    "name": "夹取称量舟",
+    "description": "右机械臂从初始位置出发，抓取白色称量舟，准备进行固体称量。",
+    "localStart": 450,
+    "localEnd": 550,
+    "start": 450,
+    "end": 550,
+    "color": "#b58026"
+  },
+  {
+    "number": 4,
+    "phase": "Solid",
+    "name": "放置称量舟至天平",
+    "description": "右机械臂把称量舟放到天平秤盘上，进行称量前准备。随后释放称量舟。完成后右机械臂复原到初始位置。",
+    "localStart": 550,
+    "localEnd": 750,
+    "start": 550,
+    "end": 750,
+    "color": "#8961a8"
+  },
+  {
+    "number": 5,
+    "phase": "Solid",
+    "name": "夹取称量勺",
+    "description": "右机械臂从初始位置出发，移动到固体容器附近，夹起称量勺，准备舀取固体容器中的蓝色粉末试剂。",
+    "localStart": 1050,
+    "localEnd": 1140,
+    "start": 1050,
+    "end": 1140,
+    "color": "#23758b"
+  },
+  {
+    "number": 6,
+    "phase": "Solid",
+    "name": "舀取固体",
+    "description": "右机械臂使用称量勺从固体容器中舀取固体粉末。",
+    "localStart": 1140,
+    "localEnd": 1200,
+    "start": 1140,
+    "end": 1200,
+    "color": "#4d844e"
+  },
+  {
+    "number": 7,
+    "phase": "Solid",
+    "name": "倾倒固体至称量舟",
+    "description": "右机械臂携称量勺至称量舟上方，倾倒称量勺，将固体样品倒入称量舟内，配合天平完成称重。",
+    "localStart": 1200,
+    "localEnd": 1250,
+    "start": 1200,
+    "end": 1250,
+    "color": "#a76a24"
+  },
+  {
+    "number": 8,
+    "phase": "Solid",
+    "name": "放置称量勺",
+    "description": "固体称量完成，右机械臂将称量勺放回预设位置。完成后右机械臂复原到初始位置。",
+    "localStart": 1250,
+    "localEnd": 1400,
+    "start": 1250,
+    "end": 1400,
+    "color": "#785495"
+  },
+  {
+    "number": 9,
+    "phase": "Solid",
+    "name": "夹取称量舟",
+    "description": "右机械臂从初始位置出发，夹取天平上装好固体样品的称量舟。",
+    "localStart": 1450,
+    "localEnd": 1550,
+    "start": 1450,
+    "end": 1550,
+    "color": "#397f9b"
+  },
+  {
+    "number": 10,
+    "phase": "Solid",
+    "name": "倾倒固体至反应锥",
+    "description": "右机械臂移动到漏斗上方倾斜称量舟，固体顺着漏斗落入下方反应锥。完成后右机械臂复原到初始位置。右机械臂固体称量流程结束。",
+    "localStart": 1550,
+    "localEnd": 1900,
+    "start": 1550,
+    "end": 1900,
+    "color": "#668c3d"
+  },
+  {
+    "number": 11,
+    "phase": "Liquid",
+    "name": "夹取烧杯",
+    "description": "左机械臂从初始位置出发，夹取装有红色溶液的烧杯。",
+    "localStart": 0,
+    "localEnd": 125,
+    "start": 2050,
+    "end": 2175,
+    "color": "#b28232"
+  },
+  {
+    "number": 12,
+    "phase": "Liquid",
+    "name": "倾倒溶液至量筒",
+    "description": "左机械臂携烧杯至量筒上方，倾斜烧杯，向量筒内倒入溶液，利用量筒定量量取溶液。",
+    "localStart": 125,
+    "localEnd": 300,
+    "start": 2175,
+    "end": 2350,
+    "color": "#956ab0"
+  },
+  {
+    "number": 13,
+    "phase": "Liquid",
+    "name": "放置烧杯",
+    "description": "溶液倾倒完成，左机械臂将烧杯放下。完成后左机械臂复原到初始位置。",
+    "localStart": 300,
+    "localEnd": 470,
+    "start": 2350,
+    "end": 2520,
+    "color": "#307f91"
+  },
+  {
+    "number": 14,
+    "phase": "Liquid",
+    "name": "夹取量筒",
+    "description": "液体量取达标后，左机械臂从初始位置出发，夹取装有定量溶液的量筒。",
+    "localStart": 500,
+    "localEnd": 620,
+    "start": 2550,
+    "end": 2670,
+    "color": "#4c905d"
+  },
+  {
+    "number": 15,
+    "phase": "Liquid",
+    "name": "倾倒溶液至反应锥",
+    "description": "左机械臂携量筒移动至反应锥上方，将定量溶液顺着漏斗倒入反应锥，和之前投入的固体混合。",
+    "localStart": 620,
+    "localEnd": 780,
+    "start": 2670,
+    "end": 2830,
+    "color": "#b17235"
+  },
+  {
+    "number": 16,
+    "phase": "Liquid",
+    "name": "放置量筒",
+    "description": "左机械臂把量筒放回原位。完成后左机械臂复原到初始位置。左机械臂液体称量任务完成。",
+    "localStart": 780,
+    "localEnd": 1000,
+    "start": 2830,
+    "end": 3050,
+    "color": "#765e9f"
+  }
+]

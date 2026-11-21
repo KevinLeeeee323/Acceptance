@@ -1,0 +1,29 @@
+{
+  "run_id": "20261120_202638_15dc8f",
+  "sample_count": 50,
+  "completed_count": 50,
+  "confirmed_count": 50,
+  "success_count": 50,
+  "rmse_min": 0.04224514367259887,
+  "rmse_mean": 0.06680007563806137,
+  "rmse_median": 0.0633242029605095,
+  "rmse_max": 0.09852877587330097,
+  "rmse_below_0_1_count": 50,
+  "reference_frames_per_sample": 3150,
+  "original_export_files_verified": 109,
+  "action_template_count": 16,
+  "plan_sha256": "d7a03c370f278aadc361e144b7b2f55886ea5d24409d079a45e80190c1a5ebc3",
+  "explanation_sha256": "5a2a73cc563952adbc9b07b3e93a7a80ae5cd81ed5e2ae5e7438eb8e5729b5d6",
+  "supplementary_manual_confirmation": {
+    "source": "送测方2026-11-20补充确认",
+    "sample_count": 50,
+    "effective_actions_per_sample": 16,
+    "longest_continuous_min": 16,
+    "longest_continuous_max": 16,
+    "passed_count": 50,
+    "template_matches_original_export": true
+  },
+  "original_export_per_action_validity_records_available": false,
+  "original_export_longest_continuous_count_available": false,
+  "supplementary_confirmation_records_available": true
+}

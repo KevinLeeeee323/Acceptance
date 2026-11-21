@@ -1,0 +1,13 @@
+{
+  "confirmation_date": "2026-11-20",
+  "source": "送测方在本次聊天中补充确认",
+  "statement": "每条都有效，且最长连续动作数记录都是16，连续片段和标注的AtomActionsInfo.json保持一致",
+  "run_id": "20261120_202638_15dc8f",
+  "sample_count": 50,
+  "template": "AtomActionsInfo.json",
+  "all_actions_effective": true,
+  "longest_continuous_actions_per_sample": 16,
+  "interpretation": "每条样本的动作01–16组成一个连续有效片段，实际动作区间沿用指定模板。逐动作表依据此次确认展开。",
+  "reviewer_name": "待验收方填写",
+  "signature": "待验收方复核签署"
+}
